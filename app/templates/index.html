@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xeno SmartReplenish CRM</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            transition: background-color 0.2s, color 0.2s;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Header -->
+    <header class="border-b border-slate-200 dark:border-slate-800/80 px-6 py-4 flex items-center justify-between bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-500/10 shrink-0">
+                <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-base font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">Xeno SmartReplenish</h1>
+                <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Predictive CRM</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <!-- Mode Toggle Switch -->
+            <button id="theme-toggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-600 dark:text-slate-300">
+                <i data-lucide="moon" class="w-4 h-4 hidden dark:block"></i>
+                <i data-lucide="sun" class="w-4 h-4 block dark:hidden"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="flex flex-1 flex-col lg:flex-row min-h-0">
+        
+        <!-- Campaigns Sidebar -->
+        <aside class="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800/60 bg-white/30 dark:bg-slate-900/10 p-5 shrink-0">
+            <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm mb-4">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                <h2>Lifecycle Campaigns</h2>
+            </div>
+            
+            <div id="campaigns-list" class="flex flex-col gap-3">
+                <!-- Campaigns loaded dynamically -->
+                <div class="text-slate-400 text-xs animate-pulse">Loading campaigns...</div>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard View -->
+        <main class="flex-1 p-6 md:p-8 flex flex-col gap-6 overflow-y-auto">
+            
+            <!-- Central Search Area (Main interface on Load) -->
+            <div id="search-container" class="w-full flex flex-col items-center justify-center transition-all duration-300 py-12">
+                <div class="w-full max-w-2xl text-center flex flex-col gap-3 mb-6" id="welcome-message">
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">AI Conversational Copilot</h2>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto">Ask Xeno anything to query customer cohorts, evaluate replenishment statuses, and run lifecycle campaigns.</p>
+                </div>
+
+                <div class="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 shadow-sm hover:shadow-md transition-shadow focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 duration-200">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-indigo-500 shrink-0"></i>
+                        <input id="ai-input" type="text" placeholder="Search customer cohorts... (e.g. 'loyal app shoppers overdue')" class="bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 flex-1 placeholder-slate-400 dark:placeholder-slate-500 text-sm md:text-base">
+                        <button id="search-btn" class="bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-medium text-sm px-4.5 py-2.5 rounded-xl flex items-center gap-1.5 shrink-0">
+                            <span>Search</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="w-full max-w-2xl mt-4 flex flex-wrap items-center justify-center gap-2 text-xs" id="quick-pills">
+                    <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Quick Prompts:</span>
+                    <button class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg transition-colors" onclick="setQuery('Find \'Tea Tree Spot Treatment\' customers overdue by 15+ days')">"Tea Tree Spot Treatment overdue by 15+ days"</button>
+                    <button class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg transition-colors" onclick="setQuery('Loyal app shoppers in Delhi overdue')">"Loyal app shoppers in Delhi overdue"</button>
+                    <button class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg transition-colors" onclick="setQuery('Early stage website customers due soon')">"Early stage website customers due soon"</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Results Container (Hidden on load) -->
+            <div id="results-container" class="hidden flex flex-col gap-6">
+                
+                <!-- Results Metadata -->
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span id="results-count" class="text-sm font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-0.5 rounded-full">0 matches</span>
+                        <div id="active-filters" class="flex flex-wrap gap-1"></div>
+                    </div>
+                    <button onclick="clearSearch()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Reset Workspace</span>
+                    </button>
+                </div>
+
+                <!-- Metrics Dashboard Panel -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5">
+                        <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Cohort Spend Volume</p>
+                        <h3 id="cohort-spend" class="text-2xl font-extrabold mt-0.5">₹0</h3>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5">
+                        <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Average Customer Value</p>
+                        <h3 id="cohort-avg-spend" class="text-2xl font-extrabold mt-0.5">₹0</h3>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5">
+                        <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Campaign Engagement</p>
+                        <h3 id="cohort-campaigns" class="text-2xl font-extrabold mt-0.5">0 reached</h3>
+                    </div>
+                </div>
+
+                <!-- Marketing Outcomes Table (New Component) -->
+                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                    <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                        <i data-lucide="table" class="w-4 h-4 text-indigo-500"></i>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Marketing Outcome Analytics</h4>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100/50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider font-semibold">
+                                    <th class="py-3 px-4">Customer</th>
+                                    <th class="py-3 px-4">Phone</th>
+                                    <th class="py-3 px-4">Last Product</th>
+                                    <th class="py-3 px-4">Status</th>
+                                    <th class="py-3 px-4">Last Campaign</th>
+                                    <th class="py-3 px-4">Sent Date</th>
+                                    <th class="py-3 px-4">Delivery</th>
+                                    <th class="py-3 px-4">Reply (Sentiment)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="outcomes-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                <!-- Loaded dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Customer Details Cards -->
+                <div>
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3.5 flex items-center gap-1.5">
+                        <i data-lucide="users" class="w-4 h-4 text-indigo-500"></i>
+                        <span>Customer Cohort Detail</span>
+                    </h4>
+                    <div id="customers-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <!-- Customer Cards dynamic loading -->
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Spinner Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/30 dark:bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col items-center gap-3">
+            <div class="w-9 h-9 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <span class="text-xs text-slate-600 dark:text-slate-300 font-medium tracking-wide">Processing search query...</span>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-5 py-3.5 rounded-xl flex items-center gap-3 text-sm transform translate-y-24 opacity-0 transition-all duration-300 shadow-2xl z-50">
+        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500" id="toast-icon"></i>
+        <span id="toast-text" class="text-slate-800 dark:text-slate-200 font-medium"></span>
+    </div>
+
+    <!-- UI Implementation Scripts -->
+    <script>
+        // Set Default Light Theme, bind theme switcher
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        themeToggleBtn.addEventListener('click', () => {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.theme = 'light';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
+            }
+        });
+
+        // Restore theme configuration
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Search variables
+        const aiInput = document.getElementById('ai-input');
+        const searchBtn = document.getElementById('search-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const searchContainer = document.getElementById('search-container');
+        const resultsContainer = document.getElementById('results-container');
+        
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0
+            }).format(val);
+        }
+
+        function showNotification(text, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toast-text');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastText.innerText = text;
+            if (isError) {
+                toastIcon.className = "w-5 h-5 text-rose-500";
+                toastIcon.setAttribute("data-lucide", "alert-circle");
+            } else {
+                toastIcon.className = "w-5 h-5 text-emerald-500";
+                toastIcon.setAttribute("data-lucide", "check-circle");
+            }
+            lucide.createIcons();
+
+            toast.style.transform = "translateY(0)";
+            toast.style.opacity = "1";
+
+            setTimeout(() => {
+                toast.style.transform = "translateY(100px)";
+                toast.style.opacity = "0";
+            }, 3000);
+        }
+
+        function setQuery(text) {
+            aiInput.value = text;
+            executeSearch();
+        }
+
+        function clearSearch() {
+            aiInput.value = '';
+            // Hide results and move search container back to middle (Zero State)
+            resultsContainer.classList.add('hidden');
+            searchContainer.className = "w-full flex flex-col items-center justify-center transition-all duration-300 py-12";
+            document.getElementById('welcome-message').classList.remove('hidden');
+            document.getElementById('quick-pills').classList.remove('hidden');
+        }
+
+        // Executed search query
+        async function executeSearch() {
+            const query = aiInput.value.trim();
+            if (!query) {
+                clearSearch();
+                return;
+            }
+
+            loadingOverlay.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/ai/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) {
+                    showNotification("Search execution failed.", true);
+                    loadingOverlay.classList.add('hidden');
+                    return;
+                }
+
+                const data = await response.json();
+                const result = data.result;
+                const customers = result.customers;
+
+                // Adjust UI Layout: transition from Zero State to top header
+                searchContainer.className = "w-full flex flex-col items-center justify-center transition-all duration-300 py-4";
+                document.getElementById('welcome-message').classList.add('hidden');
+                document.getElementById('quick-pills').classList.add('hidden');
+                
+                // Show Results container
+                resultsContainer.classList.remove('hidden');
+
+                // Render active query filters
+                const filtersPanel = document.getElementById('active-filters');
+                filtersPanel.innerHTML = '';
+                Object.entries(data.filters).forEach(([key, val]) => {
+                    const cleanKey = key.replace('_', ' ');
+                    filtersPanel.innerHTML += `
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 uppercase tracking-wide">
+                            ${cleanKey}: ${val}
+                        </span>
+                    `;
+                });
+
+                // Render Cohort Aggregate Metrics
+                document.getElementById('results-count').innerText = `${result.total_matched} matches`;
+                document.getElementById('cohort-spend').innerText = formatCurrency(result.total_spend);
+                document.getElementById('cohort-avg-spend').innerText = result.total_matched > 0 ? formatCurrency(result.total_spend / result.total_matched) : "₹0";
+                
+                const reachedCount = customers.filter(c => c.last_campaign_name !== null).length;
+                document.getElementById('cohort-campaigns').innerText = `${reachedCount} reached`;
+
+                // Render Table outcomes
+                const tableBody = document.getElementById('outcomes-table-body');
+                if (customers.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="py-8 text-center text-slate-400 font-medium">No matching outcomes found in the database.</td>
+                        </tr>
+                    `;
+                } else {
+                    tableBody.innerHTML = customers.map(c => {
+                        const m = c.replenishment_metrics;
+                        
+                        let delayBadge = `<span class="text-emerald-500 font-bold">Healthy (${m.days_until_empty}d)</span>`;
+                        if (m.replenishment_status === "Due Soon") {
+                            delayBadge = `<span class="text-amber-500 font-bold">Due Soon (${m.days_until_empty}d)</span>`;
+                        } else if (m.replenishment_status === "Overdue") {
+                            delayBadge = `<span class="text-rose-500 font-bold">Overdue (${Math.abs(m.days_until_empty)}d)</span>`;
+                        }
+
+                        // Sent date parsing
+                        const sentDate = c.last_campaign_sent_at ? new Date(c.last_campaign_sent_at).toLocaleDateString() : '-';
+                        
+                        // Status badge colors
+                        let statusColor = "text-slate-400";
+                        if (c.last_campaign_status === "delivered") statusColor = "text-indigo-500 font-semibold";
+                        else if (c.last_campaign_status === "clicked") statusColor = "text-indigo-600 font-bold";
+                        else if (c.last_campaign_status === "replied") statusColor = "text-emerald-500 font-bold";
+                        else if (c.last_campaign_status === "failed") statusColor = "text-rose-500 font-bold";
+
+                        // Reply sentiment text
+                        let replyText = "-";
+                        if (c.last_campaign_reply) {
+                            const sentiment = c.last_campaign_reply_sentiment || "Neutral";
+                            let sentimentColor = "text-slate-400";
+                            if (sentiment === "Positive") sentimentColor = "text-emerald-500";
+                            else if (sentiment === "Negative") sentimentColor = "text-rose-500";
+                            
+                            replyText = `<span class="italic">"${c.last_campaign_reply}"</span> <span class="${sentimentColor} font-bold">(${sentiment})</span>`;
+                        }
+
+                        return `
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                                <td class="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-100">${c.name}</td>
+                                <td class="py-3.5 px-4 text-slate-500">${c.phone}</td>
+                                <td class="py-3.5 px-4 text-slate-500">${m.last_product_name || '-'}</td>
+                                <td class="py-3.5 px-4">${delayBadge}</td>
+                                <td class="py-3.5 px-4 text-slate-500 font-medium">${c.last_campaign_name || '-'}</td>
+                                <td class="py-3.5 px-4 text-slate-400">${sentDate}</td>
+                                <td class="py-3.5 px-4 ${statusColor}">${c.last_campaign_status || '-'}</td>
+                                <td class="py-3.5 px-4">${replyText}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                // Render Customer cards
+                const gridContainer = document.getElementById('customers-grid');
+                if (customers.length === 0) {
+                    gridContainer.innerHTML = '';
+                } else {
+                    gridContainer.innerHTML = customers.map(c => {
+                        const m = c.replenishment_metrics;
+                        const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                        
+                        let statusBorder = "border-l-emerald-500";
+                        if (m.replenishment_status === "Due Soon") statusBorder = "border-l-amber-500";
+                        else if (m.replenishment_status === "Overdue") statusBorder = "border-l-rose-500";
+
+                        return `
+                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5 shadow-sm border-l-4 ${statusBorder} flex flex-col gap-2.5">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center font-bold text-indigo-500 text-xs shrink-0">
+                                        ${initials}
+                                    </div>
+                                    <div class="overflow-hidden">
+                                        <h5 class="font-bold text-slate-900 dark:text-slate-100 text-xs truncate leading-snug">${c.name}</h5>
+                                        <p class="text-[10px] text-slate-400 truncate">${c.email}</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-wrap gap-1 mt-0.5">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide uppercase ${c.relationship_tier === 'Loyal' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'}">
+                                        ${c.relationship_tier}
+                                    </span>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/30">
+                                        LTV: ${formatCurrency(c.lifetime_spend)}
+                                    </span>
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/30">
+                                        Shopping: ${c.favoured_shopping_method}
+                                    </span>
+                                    ${c.is_blocked_on_whatsapp ? `
+                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">Blocked</span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                lucide.createIcons();
+                showNotification(`AI Search translation evaluated! Found ${result.total_matched} targets.`);
+
+            } catch (err) {
+                console.error("AI Search execution failed:", err);
+                showNotification("Networking issue during cohort extraction.", true);
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Run Campaigns dispatches
+        async function runCampaign(id, name) {
+            try {
+                showNotification(`Dispatched execution query for campaign "${name}"...`);
+                const response = await fetch(`/api/campaigns/${id}/run`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    showNotification(result.detail);
+                } else {
+                    showNotification(`Campaign run failed: ${result.detail}`, true);
+                }
+            } catch (err) {
+                showNotification("Network error executing dispatcher.", true);
+            }
+        }
+
+        // Load static campaigns list
+        async function fetchCampaigns() {
+            try {
+                const campaigns = [
+                    { id: 1, name: "Early Soft Replenishment Ad", type: "Replenishment", tier: "Early", channel: "Instagram", discount: 0 },
+                    { id: 2, name: "Early Churn Feedback Survey", type: "Feedback", tier: "Early", channel: "Email", discount: 0 },
+                    { id: 3, name: "Early Churn Recovery Offer", type: "Replenishment", tier: "Early", channel: "SMS", discount: 20 },
+                    { id: 4, name: "Loyal Bulk Replenishment Offer", type: "Replenishment", tier: "Loyal", channel: "WhatsApp", discount: 15 },
+                    { id: 5, name: "Loyal AI Product Cross-Sell", type: "Cross_Sell", tier: "Loyal", channel: "Instagram", discount: 10 },
+                    { id: 6, name: "Loyal 1-Year Anniversary Milestone", type: "Loyalty", tier: "Loyal", channel: "Email", discount: 25 },
+                ];
+
+                const container = document.getElementById('campaigns-list');
+                container.innerHTML = campaigns.map(c => `
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col gap-2 relative">
+                        <div>
+                            <h4 class="font-bold text-slate-800 dark:text-slate-200 text-xs leading-snug">${c.name}</h4>
+                            <p class="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold mt-0.5">${c.type} • ${c.channel}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
+                            <span class="px-1 rounded text-[9px] font-semibold ${c.tier === 'Loyal' ? 'bg-purple-500/10 text-purple-600' : 'bg-blue-500/10 text-blue-600'}">
+                                ${c.tier}
+                            </span>
+                            <button onclick="runCampaign(${c.id}, '${c.name}')" class="bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white dark:hover:text-white transition-colors text-[9px] text-slate-600 dark:text-slate-300 font-bold px-2.5 py-1 rounded-md flex items-center gap-1">
+                                <i data-lucide="play" class="w-2.5 h-2.5"></i>
+                                <span>Run</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            } catch (err) {
+                console.error("Failed to load campaigns list:", err);
+            }
+        }
+
+        // Bind Search events
+        searchBtn.addEventListener('click', executeSearch);
+        aiInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') executeSearch();
+        });
+
+        // Document initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            fetchCampaigns();
+            clearSearch();
+        });
+    </script>
+</body>
+</html>
