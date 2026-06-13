@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session, select
 from app.database import get_session
-from app.models import Customer
+from app.models import Customer, Order, Campaign, CommunicationLog
 from app.schemas import SegmentQuery, SegmentResult
 from app.routers.customers import build_customer_persona, preload_customer_data
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 def segment_customers(query_filters: SegmentQuery, session: Session = Depends(get_session)):
     query = select(Customer)
     
-    # Dynamically apply filters if they are provided
+    # 1. Dynamically apply base filters if they are provided
     if query_filters.region:
         query = query.where(Customer.region == query_filters.region)
     if query_filters.acquisition_source:
@@ -22,6 +22,35 @@ def segment_customers(query_filters: SegmentQuery, session: Session = Depends(ge
         query = query.where(Customer.favoured_shopping_method == query_filters.favoured_shopping_method)
     if query_filters.preferred_channel:
         query = query.where(Customer.preferred_channel == query_filters.preferred_channel)
+        
+    # 2. Dynamically apply Groq-parsed database join filters
+    # A. Product Filter (Subquery to avoid duplicate customer rows)
+    if query_filters.product_id is not None:
+        query = query.where(
+            Customer.id.in_(
+                select(Order.customer_id).where(Order.product_id == query_filters.product_id)
+            )
+        )
+        
+    # B. Campaign, Channel, Status, and Discount filters on Communication Logs
+    log_filters = []
+    if query_filters.campaign_id is not None:
+        log_filters.append(CommunicationLog.campaign_id == query_filters.campaign_id)
+    if query_filters.status is not None:
+        log_filters.append(CommunicationLog.status == query_filters.status)
+    if query_filters.channel is not None:
+        log_filters.append(CommunicationLog.channel_used == query_filters.channel)
+        
+    if query_filters.has_discount is not None:
+        discount_op = Campaign.discount_rate > 0 if query_filters.has_discount else Campaign.discount_rate == 0
+        log_stmt = select(CommunicationLog.customer_id).join(Campaign, Campaign.id == CommunicationLog.campaign_id)
+    else:
+        log_stmt = select(CommunicationLog.customer_id)
+        
+    if log_filters or query_filters.has_discount is not None:
+        for cond in log_filters:
+            log_stmt = log_stmt.where(cond)
+        query = query.where(Customer.id.in_(log_stmt))
         
     customers = session.exec(query).all()
     

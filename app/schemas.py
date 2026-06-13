@@ -49,6 +49,13 @@ class SegmentQuery(BaseModel):
     favoured_shopping_method: Optional[str] = None
     replenishment_status: Optional[str] = None
     preferred_channel: Optional[str] = None
+    
+    # Dynamic segmentation filters parsed by Groq
+    product_id: Optional[int] = None
+    campaign_id: Optional[int] = None
+    channel: Optional[str] = None
+    status: Optional[str] = None
+    has_discount: Optional[bool] = None
 
 class SegmentResult(BaseModel):
     total_matched: int

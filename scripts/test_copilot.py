@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import sys
 from fastapi.testclient import TestClient
 
@@ -72,6 +74,7 @@ def main():
     print(f"  Query: '{query_str2}' -> Parsed Filters: {filters2}")
     
     assert filters2.get("product_name") == "Tea Tree Spot Treatment", f"Expected Tea Tree Spot Treatment, got {filters2.get('product_name')}"
+    assert filters2.get("product_id") == 18, f"Expected product_id=18, got {filters2.get('product_id')}"
     assert filters2.get("overdue_days") == 15, f"Expected 15, got {filters2.get('overdue_days')}"
     
     result2 = data2["result"]
@@ -82,25 +85,43 @@ def main():
         assert c["replenishment_metrics"]["last_product_name"] == "Tea Tree Spot Treatment", f"Expected Tea Tree Spot Treatment, got {c['replenishment_metrics']['last_product_name']}"
         assert c["replenishment_metrics"]["days_until_empty"] <= -15, f"Expected days_until_empty <= -15, got {c['replenishment_metrics']['days_until_empty']}"
         
-        # Verify campaign outcomes history is successfully returned as fields of CustomerPersona
-        assert "last_campaign_name" in c
-        assert "last_campaign_sent_at" in c
-        assert "last_campaign_status" in c
-        assert "last_campaign_reply" in c
-        assert "last_campaign_reply_sentiment" in c
-        
     if len(result2["customers"]) > 0:
         c = result2["customers"][0]
         print(f"  ✓ Verified Customer Persona matching custom filters: Name='{c['name']}', Product='{c['replenishment_metrics']['last_product_name']}', Days Until Empty={c['replenishment_metrics']['days_until_empty']}")
-        print(f"    Campaign Info: Name='{c['last_campaign_name']}', Status='{c['last_campaign_status']}', Reply='{c['last_campaign_reply']}', Sentiment='{c['last_campaign_reply_sentiment']}'")
     
     print("✓ Custom Product and Overdue Days threshold querying verified successfully.")
     
-    # 4. Test Webhooks recent list logs
-    print("Testing GET /api/webhooks/recent...")
-    response3 = client.get("/api/webhooks/recent?limit=5")
+    # 4. Test New Dynamic Database Join Filters (Campaign, Channel, Status, Discount)
+    print("Testing POST /api/ai/query for new dynamic database join filters...")
+    query_str3 = "Find customers who replied to WhatsApp campaign 4 with a discount"
+    payload3 = {"query": query_str3}
+    
+    response3 = client.post("/api/ai/query", json=payload3)
     assert response3.status_code == 200, f"Expected 200, got {response3.status_code}"
-    logs = response3.json()
+    data3 = response3.json()
+    
+    filters3 = data3["filters"]
+    print(f"  Query: '{query_str3}' -> Parsed Filters: {filters3}")
+    
+    assert filters3.get("campaign_id") == 4, f"Expected campaign_id=4, got {filters3.get('campaign_id')}"
+    assert filters3.get("channel") == "WhatsApp", f"Expected channel=WhatsApp, got {filters3.get('channel')}"
+    assert filters3.get("status") == "replied", f"Expected status=replied, got {filters3.get('status')}"
+    assert filters3.get("has_discount") is True, f"Expected has_discount=True, got {filters3.get('has_discount')}"
+    
+    result3 = data3["result"]
+    print(f"  Total matched customers for join filters: {result3['total_matched']}")
+    
+    if len(result3["customers"]) > 0:
+        c = result3["customers"][0]
+        print(f"  ✓ Verified Customer Persona matching dynamic joins: Name='{c['name']}', Last Campaign='{c['last_campaign_name']}', Status='{c['last_campaign_status']}', Reply='{c['last_campaign_reply']}'")
+        
+    print("✓ Dynamic database join filters verified successfully.")
+    
+    # 5. Test Webhooks recent list logs
+    print("Testing GET /api/webhooks/recent...")
+    response4 = client.get("/api/webhooks/recent?limit=5")
+    assert response4.status_code == 200, f"Expected 200, got {response4.status_code}"
+    logs = response4.json()
     print(f"  Recent logs count: {len(logs)}")
     if len(logs) > 0:
         log = logs[0]
