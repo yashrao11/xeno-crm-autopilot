@@ -2,6 +2,7 @@
 venv/
 .venv/
 env/
+.env/
 ENV/
 
 # Secrets & Local Configurations (Excludes your Groq Key)
