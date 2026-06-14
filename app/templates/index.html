@@ -23,6 +23,9 @@
         }
     </script>
     <style>
+        html {
+            scroll-behavior: smooth;
+        }
         body {
             transition: background-color 0.2s, color 0.2s;
         }
@@ -51,123 +54,551 @@
         </div>
     </header>
 
-    <!-- Main Container -->
-    <div class="flex flex-1 flex-col lg:flex-row min-h-0">
+    <!-- Main Container (Full screen centered workspace) -->
+    <div class="flex-1 max-w-6xl w-full mx-auto p-6 md:p-8 flex flex-col gap-8">
         
-        <!-- Campaigns Sidebar -->
-        <aside class="w-full lg:w-72 border-b lg:border-b-0 lg:border-r border-slate-200 dark:border-slate-800/60 bg-white/30 dark:bg-slate-900/10 p-5 shrink-0">
-            <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm mb-4">
-                <i data-lucide="send" class="w-4 h-4"></i>
-                <h2>Lifecycle Campaigns</h2>
+        <!-- ================= ZERO STATE ON LOAD ================= -->
+        <div id="zero-state-container" class="flex flex-col items-center justify-center py-6">
+            <div class="w-full text-center flex flex-col gap-3 mb-8">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">Segment Customer Cohorts</h2>
+                <p class="text-slate-500 dark:text-slate-400 text-sm max-w-lg mx-auto">Extract specific segments using the Conversational AI Copilot, or configure structured options below.</p>
             </div>
-            
-            <div id="campaigns-list" class="flex flex-col gap-3">
-                <!-- Campaigns loaded dynamically -->
-                <div class="text-slate-400 text-xs animate-pulse">Loading campaigns...</div>
-            </div>
-        </aside>
 
-        <!-- Main Dashboard View -->
-        <main class="flex-1 p-6 md:p-8 flex flex-col gap-6 overflow-y-auto">
-            
-            <!-- Central Search Area (Main interface on Load) -->
-            <div id="search-container" class="w-full flex flex-col items-center justify-center transition-all duration-300 py-12">
-                <div class="w-full max-w-2xl text-center flex flex-col gap-3 mb-6" id="welcome-message">
-                    <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">AI Conversational Copilot</h2>
-                    <p class="text-slate-500 dark:text-slate-400 text-sm max-w-md mx-auto">Ask Xeno anything to query customer cohorts, evaluate replenishment statuses, and run lifecycle campaigns.</p>
-                </div>
-
-                <div class="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3 shadow-sm hover:shadow-md transition-shadow focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/10 duration-200">
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="sparkles" class="w-5 h-5 text-indigo-500 shrink-0"></i>
-                        <input id="ai-input" type="text" placeholder="Search customer cohorts... (e.g. 'loyal app shoppers overdue')" class="bg-transparent border-none outline-none text-slate-800 dark:text-slate-100 flex-1 placeholder-slate-400 dark:placeholder-slate-500 text-sm md:text-base">
-                        <button id="search-btn" class="bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-medium text-sm px-4.5 py-2.5 rounded-xl flex items-center gap-1.5 shrink-0">
-                            <span>Search</span>
+            <!-- Two Prominent Panels Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+                
+                <!-- Left Panel: Conversational AI Search -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[340px]">
+                    <div>
+                        <div class="flex items-center gap-2 mb-3.5">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                <i data-lucide="sparkles" class="w-4.5 h-4.5"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">AI Conversational Copilot</h3>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-4 leading-relaxed">Type your search query in natural language. The system uses Groq API (Llama 3.3) for rapid query translation into active SQL database filters.</p>
+                        
+                        <textarea id="ai-input" placeholder="e.g. Find loyal app shoppers in Delhi overdue for coffee beans..." class="w-full min-h-[120px] p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-800 dark:text-slate-100 placeholder-slate-400 resize-none leading-relaxed"></textarea>
+                    </div>
+                    
+                    <div class="mt-4 flex flex-col gap-3">
+                        <div class="flex flex-wrap gap-1.5 text-[10px]">
+                            <button class="bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-700/60 text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded" onclick="setQuery('Find \'Tea Tree Spot Treatment\' customers overdue by 15+ days')">"Tea Tree Spot Treatment overdue by 15+ days"</button>
+                            <button class="bg-slate-100 dark:bg-slate-800/60 hover:bg-slate-200 dark:hover:bg-slate-700/60 text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded" onclick="setQuery('Find customers who replied to WhatsApp campaign 4 with a discount')">"Replied to WhatsApp campaign 4"</button>
+                        </div>
+                        <button id="search-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-semibold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10">
+                            <span>Submit AI Query</span>
                             <i data-lucide="arrow-right" class="w-4 h-4"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="w-full max-w-2xl mt-4 flex flex-wrap items-center justify-center gap-2 text-xs" id="quick-pills">
-                    <span class="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Quick Prompts:</span>
-                    <button class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg transition-colors" onclick="setQuery('Find \'Tea Tree Spot Treatment\' customers overdue by 15+ days')">"Tea Tree Spot Treatment overdue by 15+ days"</button>
-                    <button class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg transition-colors" onclick="setQuery('Loyal app shoppers in Delhi overdue')">"Loyal app shoppers in Delhi overdue"</button>
-                    <button class="bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 px-3 py-1.5 rounded-lg transition-colors" onclick="setQuery('Early stage website customers due soon')">"Early stage website customers due soon"</button>
+                <!-- Right Panel: Structured Quick-Filters -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col justify-between min-h-[340px]">
+                    <div>
+                        <div class="flex items-center gap-2 mb-3.5">
+                            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                                <i data-lucide="sliders" class="w-4.5 h-4.5"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Structured Segment Builder</h3>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-4 leading-relaxed">Build your target segments manually by setting parameters directly. Filters instantly match customer profiles on query submission.</p>
+                        
+                        <div class="grid grid-cols-2 gap-3.5">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Category</label>
+                                <select id="filter-category" onchange="handleCategoryChange()" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                    <option value="">Any Category</option>
+                                    <option value="Coffee Beans & Accessories">Coffee Beans & Accessories</option>
+                                    <option value="Skincare">Skincare</option>
+                                    <option value="Apparel">Apparel</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Product</label>
+                                <select id="filter-product" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                    <option value="">Any Product</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Region</label>
+                                <select id="filter-region" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                    <option value="">Any Region</option>
+                                    <option value="North">North (Delhi NCR)</option>
+                                    <option value="South">South (Bangalore)</option>
+                                    <option value="East">East (Kolkata)</option>
+                                    <option value="West">West (Mumbai)</option>
+                                    <option value="Central">Central (Indore)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Shopping Method</label>
+                                <select id="filter-method" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                    <option value="">Any Method</option>
+                                    <option value="Store">Store</option>
+                                    <option value="Website">Website</option>
+                                    <option value="App">App</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Relationship Tier</label>
+                                <select id="filter-tier" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                    <option value="">Any Tier</option>
+                                    <option value="Early">Early-Stage (1-2 Orders)</option>
+                                    <option value="Loyal">Loyal (3+ Orders)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Replenishment</label>
+                                <select id="filter-replenish" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                    <option value="">Any Status</option>
+                                    <option value="Healthy">Healthy (> 5 days left)</option>
+                                    <option value="Due Soon">Due Soon (0-5 days left)</option>
+                                    <option value="Overdue">Overdue (< 0 days left)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button id="filter-search-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-semibold text-xs py-3 rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/10">
+                            <span>Search with Filters</span>
+                            <i data-lucide="filter" class="w-4 h-4"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Dashboard Results Container (Hidden on load) -->
-            <div id="results-container" class="hidden flex flex-col gap-6">
+            </div>
+        </div>
+
+        <!-- ================= ACTIVE RESULTS PANEL (Hidden on load) ================= -->
+        <div id="results-panel" class="hidden flex flex-col gap-8">
+            
+            <!-- Compact Refinement Search Area -->
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm flex flex-col gap-4">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 w-full md:max-w-md">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 shrink-0"></i>
+                        <input id="refine-input" type="text" placeholder="Refine cohort with new query..." class="bg-transparent text-xs outline-none text-slate-800 dark:text-slate-200 w-full">
+                    </div>
+                    
+                    <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                        <button onclick="executeRefinementSearch()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors">Refine with AI</button>
+                        <button onclick="toggleRefineFilters()" class="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-indigo-600 flex items-center gap-1 border border-slate-200 dark:border-slate-850 px-3 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-850">
+                            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i>
+                            <span>Structured Filters</span>
+                        </button>
+                        <button onclick="resetWorkspace()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                            <span>Reset Workspace</span>
+                        </button>
+                    </div>
+                </div>
                 
-                <!-- Results Metadata -->
-                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                    <div class="flex items-center gap-2">
-                        <span id="results-count" class="text-sm font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2.5 py-0.5 rounded-full">0 matches</span>
-                        <div id="active-filters" class="flex flex-wrap gap-1"></div>
+                <!-- Collapsible Structured Filters -->
+                <div id="refine-filters-panel" class="hidden border-t border-slate-100 dark:border-slate-800 pt-4 flex flex-col gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Category</label>
+                            <select id="refine-category" onchange="handleRefineCategoryChange()" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                <option value="">Any Category</option>
+                                <option value="Coffee Beans & Accessories">Coffee Beans & Accessories</option>
+                                <option value="Skincare">Skincare</option>
+                                <option value="Apparel">Apparel</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Product</label>
+                            <select id="refine-product" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                <option value="">Any Product</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Region</label>
+                            <select id="refine-region" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                <option value="">Any Region</option>
+                                <option value="North">North (Delhi NCR)</option>
+                                <option value="South">South (Bangalore)</option>
+                                <option value="East">East (Kolkata)</option>
+                                <option value="West">West (Mumbai)</option>
+                                <option value="Central">Central (Indore)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Shopping Method</label>
+                            <select id="refine-method" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                <option value="">Any Method</option>
+                                <option value="Store">Store</option>
+                                <option value="Website">Website</option>
+                                <option value="App">App</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Relationship Tier</label>
+                            <select id="refine-tier" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                <option value="">Any Tier</option>
+                                <option value="Early">Early-Stage (1-2 Orders)</option>
+                                <option value="Loyal">Loyal (3+ Orders)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Replenishment</label>
+                            <select id="refine-replenish" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                <option value="">Any Status</option>
+                                <option value="Healthy">Healthy (> 5 days left)</option>
+                                <option value="Due Soon">Due Soon (0-5 days left)</option>
+                                <option value="Overdue">Overdue (< 0 days left)</option>
+                            </select>
+                        </div>
                     </div>
-                    <button onclick="clearSearch()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1">
-                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                        <span>Reset Workspace</span>
-                    </button>
-                </div>
-
-                <!-- Metrics Dashboard Panel -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5">
-                        <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Cohort Spend Volume</p>
-                        <h3 id="cohort-spend" class="text-2xl font-extrabold mt-0.5">₹0</h3>
-                    </div>
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5">
-                        <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Average Customer Value</p>
-                        <h3 id="cohort-avg-spend" class="text-2xl font-extrabold mt-0.5">₹0</h3>
-                    </div>
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5">
-                        <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Campaign Engagement</p>
-                        <h3 id="cohort-campaigns" class="text-2xl font-extrabold mt-0.5">0 reached</h3>
-                    </div>
-                </div>
-
-                <!-- Marketing Outcomes Table (New Component) -->
-                <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
-                    <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                        <i data-lucide="table" class="w-4 h-4 text-indigo-500"></i>
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Marketing Outcome Analytics</h4>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs border-collapse">
-                            <thead>
-                                <tr class="bg-slate-100/50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider font-semibold">
-                                    <th class="py-3 px-4">Customer</th>
-                                    <th class="py-3 px-4">Phone</th>
-                                    <th class="py-3 px-4">Last Product</th>
-                                    <th class="py-3 px-4">Status</th>
-                                    <th class="py-3 px-4">Last Campaign</th>
-                                    <th class="py-3 px-4">Sent Date</th>
-                                    <th class="py-3 px-4">Delivery</th>
-                                    <th class="py-3 px-4">Reply (Sentiment)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="outcomes-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60">
-                                <!-- Loaded dynamically -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Customer Details Cards -->
-                <div>
-                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3.5 flex items-center gap-1.5">
-                        <i data-lucide="users" class="w-4 h-4 text-indigo-500"></i>
-                        <span>Customer Cohort Detail</span>
-                    </h4>
-                    <div id="customers-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        <!-- Customer Cards dynamic loading -->
+                    <div class="flex justify-end gap-2.5">
+                        <button onclick="executeRefineStructuredSearch()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                            <span>Apply Structured Filters</span>
+                            <i data-lucide="filter" class="w-3.5 h-3.5"></i>
+                        </button>
                     </div>
                 </div>
-
             </div>
 
-        </main>
+            <!-- Layout Grid with Left Sidebar Navigation -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+                
+                <!-- Sticky Left Sidebar -->
+                <div class="lg:col-span-1 sticky top-24 hidden lg:flex flex-col gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4.5 rounded-xl shadow-sm">
+                    <h5 class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider px-1">Navigation</h5>
+                    <nav class="flex flex-col gap-1">
+                        <a href="#summary-section" id="nav-summary" class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 transition-colors">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+                            <span>Segment Overview</span>
+                        </a>
+                        <a href="#launchpad-section" id="nav-launchpad" class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span>Campaign Launchpad</span>
+                        </a>
+                        <a href="#tracker-section" id="nav-tracker" class="hidden flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            <i data-lucide="activity" class="w-4 h-4"></i>
+                            <span>Live Dispatch Tracker</span>
+                        </a>
+                        <a href="#analytics-section" id="nav-analytics" class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            <i data-lucide="table" class="w-4 h-4"></i>
+                            <span>Outcome Analytics</span>
+                        </a>
+                        <a href="#cohort-section" id="nav-cohort" class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                            <i data-lucide="users" class="w-4 h-4"></i>
+                            <span>Customer Cohort Detail</span>
+                        </a>
+                    </nav>
+                </div>
+
+                <!-- Right Main Content Area -->
+                <div class="lg:col-span-3 flex flex-col gap-8">
+
+                    <!-- 1. Matched Segment Metadata & Breakdown Cards Section -->
+                    <div id="summary-section" class="scroll-mt-24 flex flex-col gap-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span id="results-count" class="text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-3 py-1 rounded-full">0 matches</span>
+                                <div id="active-filters" class="flex flex-wrap gap-1.5"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Aggregate Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col gap-1">
+                                <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Cohort Lifetime Value</p>
+                                <h3 id="cohort-spend" class="text-2xl font-extrabold text-slate-900 dark:text-white">₹0</h3>
+                            </div>
+                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col gap-1">
+                                <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Average Order Value (Cohort)</p>
+                                <h3 id="cohort-avg-spend" class="text-2xl font-extrabold text-slate-900 dark:text-white">₹0</h3>
+                            </div>
+                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 flex flex-col gap-1">
+                                <p class="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">Outreach Reached Rate</p>
+                                <h3 id="cohort-campaigns" class="text-2xl font-extrabold text-slate-900 dark:text-white">0 reached</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Campaign Launchpad Section -->
+                    <div id="launchpad-section" class="scroll-mt-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3.5 mb-4">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="send" class="w-5 h-5 text-indigo-500"></i>
+                                <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Outreach Campaign Launchpad</h3>
+                            </div>
+                            <span class="text-xs text-slate-400">Targeting segment of <span id="launchpad-matched-count" class="font-bold text-indigo-500">0</span> customers</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <!-- Options 1-6 (Predefined) -->
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/40 relative flex flex-col justify-between campaign-card min-h-[140px]" id="campaign-card-1">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1">
+                                        <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-snug">Early Soft Replenishment Ad</h4>
+                                        <button onclick="showGuidanceModal(1)" class="text-slate-400 hover:text-indigo-500 p-0.5 text-xs inline-flex items-center justify-center shrink-0" title="View Marketing Guidance">
+                                            ℹ️
+                                        </button>
+                                    </div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold mt-1">Replenishment • Instagram</p>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20">Early</span>
+                                    <button onclick="selectCampaignToLaunch(1, 'Early Soft Replenishment Ad', 'Instagram', 0)" class="bg-indigo-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg hover:bg-indigo-500 transition-colors">Configure</button>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/40 relative flex flex-col justify-between campaign-card min-h-[140px]" id="campaign-card-2">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1">
+                                        <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-snug">Early Churn Feedback Survey</h4>
+                                        <button onclick="showGuidanceModal(2)" class="text-slate-400 hover:text-indigo-500 p-0.5 text-xs inline-flex items-center justify-center shrink-0" title="View Marketing Guidance">
+                                            ℹ️
+                                        </button>
+                                    </div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold mt-1">Feedback • Email</p>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20">Early</span>
+                                    <button onclick="selectCampaignToLaunch(2, 'Early Churn Feedback Survey', 'Email', 0)" class="bg-indigo-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg hover:bg-indigo-500 transition-colors">Configure</button>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/40 relative flex flex-col justify-between campaign-card min-h-[140px]" id="campaign-card-3">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1">
+                                        <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-snug">Early Churn Recovery Offer</h4>
+                                        <button onclick="showGuidanceModal(3)" class="text-slate-400 hover:text-indigo-500 p-0.5 text-xs inline-flex items-center justify-center shrink-0" title="View Marketing Guidance">
+                                            ℹ️
+                                        </button>
+                                    </div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold mt-1">Replenishment • SMS</p>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-500/10 text-blue-600 border border-blue-500/20">Early</span>
+                                    <button onclick="selectCampaignToLaunch(3, 'Early Churn Recovery Offer', 'SMS', 20)" class="bg-indigo-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg hover:bg-indigo-500 transition-colors">Configure</button>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/40 relative flex flex-col justify-between campaign-card min-h-[140px]" id="campaign-card-4">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1">
+                                        <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-snug">Loyal Bulk Replenishment Offer</h4>
+                                        <button onclick="showGuidanceModal(4)" class="text-slate-400 hover:text-indigo-500 p-0.5 text-xs inline-flex items-center justify-center shrink-0" title="View Marketing Guidance">
+                                            ℹ️
+                                        </button>
+                                    </div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold mt-1">Replenishment • WhatsApp</p>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20">Loyal</span>
+                                    <button onclick="selectCampaignToLaunch(4, 'Loyal Bulk Replenishment Offer', 'WhatsApp', 15)" class="bg-indigo-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg hover:bg-indigo-500 transition-colors">Configure</button>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/40 relative flex flex-col justify-between campaign-card min-h-[140px]" id="campaign-card-5">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1">
+                                        <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-snug">Loyal AI Product Cross-Sell</h4>
+                                        <button onclick="showGuidanceModal(5)" class="text-slate-400 hover:text-indigo-500 p-0.5 text-xs inline-flex items-center justify-center shrink-0" title="View Marketing Guidance">
+                                            ℹ️
+                                        </button>
+                                    </div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold mt-1">Cross_Sell • Instagram</p>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20">Loyal</span>
+                                    <button onclick="selectCampaignToLaunch(5, 'Loyal AI Product Cross-Sell', 'Instagram', 10)" class="bg-indigo-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg hover:bg-indigo-500 transition-colors">Configure</button>
+                                </div>
+                            </div>
+                            
+                            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50/50 dark:bg-slate-900/40 relative flex flex-col justify-between campaign-card min-h-[140px]" id="campaign-card-6">
+                                <div>
+                                    <div class="flex items-start justify-between gap-1">
+                                        <h4 class="font-bold text-xs text-slate-900 dark:text-white leading-snug">Loyal 1-Year Anniversary Milestone</h4>
+                                        <button onclick="showGuidanceModal(6)" class="text-slate-400 hover:text-indigo-500 p-0.5 text-xs inline-flex items-center justify-center shrink-0" title="View Marketing Guidance">
+                                            ℹ️
+                                        </button>
+                                    </div>
+                                    <p class="text-[9px] text-slate-400 uppercase font-semibold mt-1">Loyalty • Email</p>
+                                </div>
+                                <div class="mt-4 flex items-center justify-between">
+                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20">Loyal</span>
+                                    <button onclick="selectCampaignToLaunch(6, 'Loyal 1-Year Anniversary Milestone', 'Email', 25)" class="bg-indigo-600 text-white font-bold text-[10px] px-3 py-1.5 rounded-lg hover:bg-indigo-500 transition-colors">Configure</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Option 7: Custom Campaign Option -->
+                            <div id="custom-campaign-option" class="border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 rounded-xl p-4 bg-slate-50/10 dark:bg-slate-950/20 relative flex flex-col justify-center items-center transition-all cursor-pointer min-h-[140px]" onclick="selectCampaignToLaunch(7, 'Custom Campaign Form', 'WhatsApp', 10)">
+                                <i data-lucide="plus-circle" class="w-7 h-7 text-indigo-500 mb-1.5"></i>
+                                <span class="text-xs font-bold text-slate-600 dark:text-slate-350">Custom Campaign Form</span>
+                                <span class="text-[9px] text-slate-400 mt-0.5 text-center leading-normal">Build custom copy, channel, and discount</span>
+                            </div>
+                        </div>
+
+                        <!-- Selected Campaign Settings / Message Customizer Form -->
+                        <div id="campaign-customizer-panel" class="hidden mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-4">
+                            <div class="flex items-center justify-between">
+                                <h4 id="customizer-campaign-title" class="text-xs font-bold uppercase tracking-wider text-slate-400">Configure Outbound campaign properties</h4>
+                                <button onclick="hideCustomizerPanel()" class="text-xs text-slate-400 hover:underline">Cancel</button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                                <div class="lg:col-span-2">
+                                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Outbound Message Template</label>
+                                    <textarea id="launch-msg-template" class="w-full min-h-[100px] p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-800 dark:text-slate-100 resize-none leading-relaxed" placeholder="Write custom copy... Tags: {customer_name}, {product_name}, {discount_percent}, {campaign_name}"></textarea>
+                                </div>
+                                
+                                <div class="flex flex-col gap-3.5">
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Communication Channel</label>
+                                        <select id="launch-channel" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-700 dark:text-slate-200 focus:outline-none">
+                                            <option value="WhatsApp">WhatsApp</option>
+                                            <option value="Email">Email</option>
+                                            <option value="SMS">SMS</option>
+                                            <option value="Instagram">Instagram</option>
+                                            <option value="Facebook">Facebook</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Campaign Discount Rate (%)</label>
+                                        <input id="launch-discount" type="number" min="0" max="100" class="w-full p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-xs text-slate-755 dark:text-slate-200 focus:outline-none" placeholder="e.g. 15">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-1.5 flex items-center justify-end">
+                                <button id="dispatch-campaign-btn" onclick="executeOutreachDispatch()" class="bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-bold text-xs px-6 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/10">
+                                    <i data-lucide="play" class="w-4 h-4"></i>
+                                    <span>Dispatch Campaign to Segment</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Live Callback Tracker Section -->
+                    <div id="tracker-section" class="scroll-mt-24 hidden">
+                        <div id="tracker-container" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                            <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping"></div>
+                                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Live Outbound Campaign Dispatch Tracker</h4>
+                                </div>
+                                <span class="text-[9px] bg-emerald-500/10 text-emerald-600 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">Monitoring callbacks (1s poll)</span>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-xs border-collapse">
+                                    <thead>
+                                        <tr class="bg-slate-100/50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider font-semibold">
+                                            <th class="py-3 px-4">Customer</th>
+                                            <th class="py-3 px-4 w-24">Channel</th>
+                                            <th class="py-3 px-4 w-1/3">Message Text</th>
+                                            <th class="py-3 px-4">State Indicator (Sent ➔ Delivered ➔ Read ➔ Clicked ➔ Replied)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tracker-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                        <!-- Loaded dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- State Counts Footer -->
+                            <div class="border-t border-slate-100 dark:border-slate-800/60 px-5 py-4 bg-slate-50/30 dark:bg-slate-900/30 flex flex-wrap gap-4 items-center justify-between text-xs">
+                                <span class="font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-[10px]">Outbound State Summary</span>
+                                <div class="flex flex-wrap gap-3.5 text-[11px] font-semibold">
+                                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 border border-slate-200 dark:border-slate-700/50">
+                                        <span>Sent:</span> <strong id="count-sent" class="font-extrabold">0</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-800/30">
+                                        <span>Delivered:</span> <strong id="count-delivered" class="font-extrabold">0</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-350 border border-indigo-200 dark:border-indigo-700/30">
+                                        <span>Read:</span> <strong id="count-read" class="font-extrabold">0</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30">
+                                        <span>Clicked:</span> <strong id="count-clicked" class="font-extrabold">0</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-850/30">
+                                        <span>Replied:</span> <strong id="count-replied" class="font-extrabold">0</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-850/30">
+                                        <span>Failed:</span> <strong id="count-failed" class="font-extrabold">0</strong>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Outcome Analytics Section -->
+                    <div id="analytics-section" class="scroll-mt-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+                        <div class="px-5 py-3.5 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                            <i data-lucide="table" class="w-4 h-4 text-indigo-500"></i>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Marketing Outcome Analytics</h4>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-100/50 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase tracking-wider font-semibold">
+                                        <th class="py-3 px-4">Customer</th>
+                                        <th class="py-3 px-4">Phone</th>
+                                        <th class="py-3 px-4">Last Product</th>
+                                        <th class="py-3 px-4">Status</th>
+                                        <th class="py-3 px-4">Last Campaign</th>
+                                        <th class="py-3 px-4">Sent Date</th>
+                                        <th class="py-3 px-4">Delivery</th>
+                                        <th class="py-3 px-4">Reply (Sentiment)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="outcomes-table-body" class="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                    <!-- Loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 5. Customer Cohort Section -->
+                    <div id="cohort-section" class="scroll-mt-24 flex flex-col gap-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-0 flex items-center gap-1.5">
+                            <i data-lucide="users" class="w-4 h-4 text-indigo-500"></i>
+                            <span>Customer Cohort Detail</span>
+                        </h4>
+                        <div id="customers-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            <!-- Customer Cards loaded dynamically -->
+                        </div>
+                    </div>
+
+                </div> <!-- End lg:col-span-3 -->
+            </div> <!-- End Grid Layout -->
+
+        </div>
+
+    </div>
+
+    <!-- ================= MODALS & OVERLAYS ================= -->
+    <!-- Guidance Modal -->
+    <div id="guidance-modal" class="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 flex flex-col gap-4 relative">
+            <div class="flex items-center justify-between border-b border-slate-150 dark:border-slate-800 pb-2.5">
+                <h3 id="guidance-title" class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Campaign Marketing Guidance</h3>
+                <button onclick="closeGuidanceModal()" class="text-slate-400 hover:text-slate-650 dark:hover:text-slate-200 text-lg font-bold">&times;</button>
+            </div>
+            <div class="text-xs text-slate-600 dark:text-slate-350 flex flex-col gap-3.5">
+                <div>
+                    <span class="font-bold block uppercase tracking-wider text-[10px] text-slate-400">Marketing Objective</span>
+                    <p id="guidance-objective" class="mt-0.5 leading-relaxed"></p>
+                </div>
+                <div>
+                    <span class="font-bold block uppercase tracking-wider text-[10px] text-slate-400">Target Segment & Channel</span>
+                    <p id="guidance-channel" class="mt-0.5"></p>
+                </div>
+                <div>
+                    <span class="font-bold block uppercase tracking-wider text-[10px] text-slate-400">Expected Business KPI Impact</span>
+                    <p id="guidance-kpi" class="mt-0.5 font-bold text-indigo-600 dark:text-indigo-400"></p>
+                </div>
+            </div>
+            <div class="mt-2.5 flex items-center justify-end border-t border-slate-100 dark:border-slate-800 pt-3">
+                <button onclick="closeGuidanceModal()" class="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200 font-bold text-xs px-4 py-2 rounded-lg">Close</button>
+            </div>
+        </div>
     </div>
 
     <!-- Spinner Loading Overlay -->
@@ -179,12 +610,12 @@
     </div>
 
     <!-- Toast Notifications -->
-    <div id="toast" class="fixed bottom-6 right-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-5 py-3.5 rounded-xl flex items-center gap-3 text-sm transform translate-y-24 opacity-0 transition-all duration-300 shadow-2xl z-50">
+    <div id="toast" class="fixed bottom-6 right-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-5 py-3.5 rounded-xl flex items-center gap-3 text-xs transform translate-y-24 opacity-0 transition-all duration-300 shadow-2xl z-50">
         <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500" id="toast-icon"></i>
         <span id="toast-text" class="text-slate-800 dark:text-slate-200 font-medium"></span>
     </div>
 
-    <!-- UI Implementation Scripts -->
+    <!-- Scripts -->
     <script>
         // Set Default Light Theme, bind theme switcher
         const themeToggleBtn = document.getElementById('theme-toggle');
@@ -205,13 +636,136 @@
             document.documentElement.classList.remove('dark');
         }
 
-        // Search variables
-        const aiInput = document.getElementById('ai-input');
-        const searchBtn = document.getElementById('search-btn');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const searchContainer = document.getElementById('search-container');
-        const resultsContainer = document.getElementById('results-container');
-        
+        // Global Products List by category
+        const productsByCategory = {
+            "Coffee Beans & Accessories": [
+                { id: 1, name: "Premium Espresso Roast" },
+                { id: 2, name: "Organic Light Roast" },
+                { id: 3, name: "Cold Brew Coarse Ground" },
+                { id: 4, name: "Decaf French Roast" },
+                { id: 5, name: "Hazelnut Flavored Whole Bean" },
+                { id: 6, name: "Classic French Press (8-Cup)" },
+                { id: 7, name: "Premium Paper Coffee Filters (100-pack)" },
+                { id: 8, name: "Stainless Steel Milk Frothing Pitcher" },
+                { id: 9, name: "Gourmet Vanilla Syrup (750ml)" },
+                { id: 10, name: "Ceramic Double-Walled Mug" }
+            ],
+            "Skincare": [
+                { id: 11, name: "Sandalwood Clay Cleanser" },
+                { id: 12, name: "Vitamin C Glow Serum" },
+                { id: 13, name: "Saffron Night Cream" },
+                { id: 14, name: "Hydrating Gel Sunscreen SPF 50" },
+                { id: 15, name: "Gentle Rosewater Toner" },
+                { id: 16, name: "Nourishing Shea Lip Balm" },
+                { id: 17, name: "Deep Cleansing Facial Oil" },
+                { id: 18, name: "Tea Tree Spot Treatment" },
+                { id: 19, name: "Aloe Vera Soothing Gel" },
+                { id: 20, name: "Retinol Anti-Aging Eye Cream" }
+            ],
+            "Apparel": [
+                { id: 21, name: "Classic Denim Jacket" },
+                { id: 22, name: "Organic Cotton Tee" },
+                { id: 23, name: "Merino Wool Socks" },
+                { id: 24, name: "Fleece Pullover Hoodie" },
+                { id: 25, name: "Genuine Leather Belt" },
+                { id: 26, name: "Ribbed Knit Beanie" },
+                { id: 27, name: "Slim-Fit Stretch Chinos" },
+                { id: 28, name: "Lightweight Running Shorts" },
+                { id: 29, name: "Waterproof Windbreaker" },
+                { id: 30, name: "Canvas Tote Bag" }
+            ]
+        };
+
+        // Initialize Products Select Dropdown
+        function populateProductsDropdown(category = "", selectId = "filter-product") {
+            const productSelect = document.getElementById(selectId);
+            if (!productSelect) return;
+            productSelect.innerHTML = '<option value="">Any Product</option>';
+            
+            let list = [];
+            if (category) {
+                list = productsByCategory[category] || [];
+            } else {
+                Object.values(productsByCategory).forEach(products => {
+                    list = list.concat(products);
+                });
+            }
+            
+            list.forEach(p => {
+                productSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+            });
+        }
+
+        function handleCategoryChange() {
+            const category = document.getElementById("filter-category").value;
+            populateProductsDropdown(category, "filter-product");
+        }
+
+        function handleRefineCategoryChange() {
+            const category = document.getElementById("refine-category").value;
+            populateProductsDropdown(category, "refine-product");
+        }
+
+        // Guidance Modals Details
+        const campaignGuidance = {
+            1: {
+                title: "Early Soft Replenishment Ad",
+                objective: "Trigger repeat restock purchases for early-stage customers without margin-diluting discount codes.",
+                channel: "Instagram Sponsored Ads (Visual consumbale reminder based on category purchase history)",
+                kpi: "Repeat Purchase conversion Rate (+8-12%)"
+            },
+            2: {
+                title: "Early Churn Feedback Survey",
+                objective: "Survey early customers whose predicted replenishment empty date has passed without a subsequent order, collecting product feedback.",
+                channel: "Email (Qualitative Service Survey)",
+                kpi: "Customer Feedback collection volume (+15% response rates)"
+            },
+            3: {
+                title: "Early Churn Recovery Offer",
+                objective: "Re-engage overdue early-stage customers with high-urgency SMS copy containing discount codes before they lapse completely.",
+                channel: "SMS Direct Outreach (20% Recovery Discount code)",
+                kpi: "Lapsed Customer Winback Conversion Rate (+5-8%)"
+            },
+            4: {
+                title: "Loyal Bulk Replenishment Offer",
+                objective: "Target repeat brand loyalists nearing product depletion, offering discounts on larger bundle restocks to push up ticket sizes.",
+                channel: "WhatsApp Messaging (15% Bulk Discount Voucher)",
+                kpi: "Average Order Value / AOV (+18-22%)"
+            },
+            5: {
+                title: "Loyal AI Product Cross-Sell",
+                objective: "Cross-sell premium accessories to repeat customers based on their historical category preferences (e.g. coffee beans cross-sold with French Press).",
+                channel: "Instagram DM Suggestions (10% Cross-Sell discount)",
+                kpi: "Cross-Sell penetration index and lifetime LTV"
+            },
+            6: {
+                title: "Loyal 1-Year Anniversary Milestone",
+                objective: "Reward milestone tenure to boost loyal customer retention and build organic advocacy.",
+                channel: "Email (Personalized 25% Discount birthday/anniversary voucher)",
+                kpi: "Annual Customer Retention Index"
+            }
+        };
+
+        function showGuidanceModal(id) {
+            const guidance = campaignGuidance[id];
+            if (!guidance) return;
+            document.getElementById("guidance-title").innerText = guidance.title;
+            document.getElementById("guidance-objective").innerText = guidance.objective;
+            document.getElementById("guidance-channel").innerText = guidance.channel;
+            document.getElementById("guidance-kpi").innerText = guidance.kpi;
+            document.getElementById("guidance-modal").classList.remove("hidden");
+        }
+
+        function closeGuidanceModal() {
+            document.getElementById("guidance-modal").classList.add("hidden");
+        }
+
+        // Workspace State Tracking Variables
+        let currentCohortCustomers = [];
+        let activeSelectedCampaignId = null;
+        let activeTrackedLogs = [];
+        let pollingIntervalId = null;
+
         function formatCurrency(val) {
             return new Intl.NumberFormat('en-IN', {
                 style: 'currency',
@@ -245,58 +799,130 @@
         }
 
         function setQuery(text) {
-            aiInput.value = text;
-            executeSearch();
+            document.getElementById("ai-input").value = text;
+            executeAISearch();
         }
 
-        function clearSearch() {
-            aiInput.value = '';
-            // Hide results and move search container back to middle (Zero State)
-            resultsContainer.classList.add('hidden');
-            searchContainer.className = "w-full flex flex-col items-center justify-center transition-all duration-300 py-12";
-            document.getElementById('welcome-message').classList.remove('hidden');
-            document.getElementById('quick-pills').classList.remove('hidden');
-        }
-
-        // Executed search query
-        async function executeSearch() {
-            const query = aiInput.value.trim();
-            if (!query) {
-                clearSearch();
-                return;
+        // Show/Hide workspace states
+        function resetWorkspace() {
+            document.getElementById("ai-input").value = '';
+            document.getElementById("refine-input").value = '';
+            document.getElementById("zero-state-container").classList.remove("hidden");
+            document.getElementById("results-panel").classList.add("hidden");
+            document.getElementById("tracker-container").classList.add("hidden");
+            if (document.getElementById("tracker-section")) {
+                document.getElementById("tracker-section").classList.add("hidden");
             }
+            if (document.getElementById("nav-tracker")) {
+                document.getElementById("nav-tracker").classList.add("hidden");
+            }
+            hideCustomizerPanel();
+            
+            // Reset nav links styling to default
+            const navIds = ['nav-summary', 'nav-launchpad', 'nav-tracker', 'nav-analytics', 'nav-cohort'];
+            navIds.forEach((id, idx) => {
+                const link = document.getElementById(id);
+                if (link) {
+                    if (idx === 0) {
+                        link.className = "flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 transition-colors";
+                    } else {
+                        link.className = "flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors";
+                    }
+                }
+            });
+            
+            // Stop polling
+            if (pollingIntervalId) {
+                clearInterval(pollingIntervalId);
+                pollingIntervalId = null;
+            }
+            activeTrackedLogs = [];
+        }
 
-            loadingOverlay.classList.remove('hidden');
+        // Trigger AI Search
+        async function executeAISearch() {
+            const query = document.getElementById("ai-input").value.trim();
+            if (!query) return;
+            
+            executeSearchCall("/api/ai/query", { query: query }, true);
+        }
 
+        // Trigger Refined AI Search
+        async function executeRefinementSearch() {
+            const query = document.getElementById("refine-input").value.trim();
+            if (!query) return;
+            
+            executeSearchCall("/api/ai/query", { query: query }, true);
+        }
+
+        // Trigger Structured Filters Search
+        async function executeStructuredSearch() {
+            const payload = {
+                category: document.getElementById("filter-category").value || null,
+                product_id: parseInt(document.getElementById("filter-product").value) || null,
+                region: document.getElementById("filter-region").value || null,
+                favoured_shopping_method: document.getElementById("filter-method").value || null,
+                relationship_tier: document.getElementById("filter-tier").value || null,
+                replenishment_status: document.getElementById("filter-replenish").value || null
+            };
+            
+            executeSearchCall("/api/analytics/segment", payload, false);
+        }
+
+        // Unified search callback execution
+        async function executeSearchCall(url, payload, isAI = false) {
+            document.getElementById("loading-overlay").classList.remove("hidden");
+            
             try {
-                const response = await fetch('/api/ai/query', {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: query })
+                    body: JSON.stringify(payload)
                 });
-
+                
                 if (!response.ok) {
-                    showNotification("Search execution failed.", true);
-                    loadingOverlay.classList.add('hidden');
+                    showNotification("Search processing failed.", true);
                     return;
                 }
-
-                const data = await response.json();
-                const result = data.result;
-                const customers = result.customers;
-
-                // Adjust UI Layout: transition from Zero State to top header
-                searchContainer.className = "w-full flex flex-col items-center justify-center transition-all duration-300 py-4";
-                document.getElementById('welcome-message').classList.add('hidden');
-                document.getElementById('quick-pills').classList.add('hidden');
                 
-                // Show Results container
-                resultsContainer.classList.remove('hidden');
-
-                // Render active query filters
-                const filtersPanel = document.getElementById('active-filters');
+                const data = await response.json();
+                let result = data;
+                let activeFiltersObj = payload;
+                
+                if (isAI) {
+                    result = data.result;
+                    activeFiltersObj = data.filters;
+                }
+                
+                currentCohortCustomers = result.customers;
+                
+                // Transition Zero State out, show Results workspace
+                document.getElementById("zero-state-container").classList.add("hidden");
+                document.getElementById("results-panel").classList.remove("hidden");
+                
+                // Copy current input text to refinement input box to echo it
+                if (isAI) {
+                    document.getElementById("refine-input").value = payload.query;
+                    resetRefineFiltersPanel();
+                } else {
+                    syncStructuredFilters("filter", "refine");
+                    document.getElementById("refine-input").value = '';
+                }
+                
+                // Populate summary panel
+                document.getElementById("results-count").innerText = `${result.total_matched} matches`;
+                document.getElementById("launchpad-matched-count").innerText = result.total_matched;
+                document.getElementById("cohort-spend").innerText = formatCurrency(result.total_spend);
+                document.getElementById("cohort-avg-spend").innerText = result.total_matched > 0 ? formatCurrency(result.total_spend / result.total_matched) : "₹0";
+                
+                const reachedCount = result.customers.filter(c => c.last_campaign_name !== null).length;
+                document.getElementById("cohort-campaigns").innerText = `${reachedCount} reached`;
+                
+                // Render filters pills
+                const filtersPanel = document.getElementById("active-filters");
                 filtersPanel.innerHTML = '';
-                Object.entries(data.filters).forEach(([key, val]) => {
+                Object.entries(activeFiltersObj).forEach(([key, val]) => {
+                    if (val === null || val === '') return;
                     const cleanKey = key.replace('_', ' ');
                     filtersPanel.innerHTML += `
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 uppercase tracking-wide">
@@ -304,187 +930,505 @@
                         </span>
                     `;
                 });
-
-                // Render Cohort Aggregate Metrics
-                document.getElementById('results-count').innerText = `${result.total_matched} matches`;
-                document.getElementById('cohort-spend').innerText = formatCurrency(result.total_spend);
-                document.getElementById('cohort-avg-spend').innerText = result.total_matched > 0 ? formatCurrency(result.total_spend / result.total_matched) : "₹0";
                 
-                const reachedCount = customers.filter(c => c.last_campaign_name !== null).length;
-                document.getElementById('cohort-campaigns').innerText = `${reachedCount} reached`;
-
-                // Render Table outcomes
-                const tableBody = document.getElementById('outcomes-table-body');
-                if (customers.length === 0) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="8" class="py-8 text-center text-slate-400 font-medium">No matching outcomes found in the database.</td>
-                        </tr>
-                    `;
-                } else {
-                    tableBody.innerHTML = customers.map(c => {
-                        const m = c.replenishment_metrics;
-                        
-                        let delayBadge = `<span class="text-emerald-500 font-bold">Healthy (${m.days_until_empty}d)</span>`;
-                        if (m.replenishment_status === "Due Soon") {
-                            delayBadge = `<span class="text-amber-500 font-bold">Due Soon (${m.days_until_empty}d)</span>`;
-                        } else if (m.replenishment_status === "Overdue") {
-                            delayBadge = `<span class="text-rose-500 font-bold">Overdue (${Math.abs(m.days_until_empty)}d)</span>`;
-                        }
-
-                        // Sent date parsing
-                        const sentDate = c.last_campaign_sent_at ? new Date(c.last_campaign_sent_at).toLocaleDateString() : '-';
-                        
-                        // Status badge colors
-                        let statusColor = "text-slate-400";
-                        if (c.last_campaign_status === "delivered") statusColor = "text-indigo-500 font-semibold";
-                        else if (c.last_campaign_status === "clicked") statusColor = "text-indigo-600 font-bold";
-                        else if (c.last_campaign_status === "replied") statusColor = "text-emerald-500 font-bold";
-                        else if (c.last_campaign_status === "failed") statusColor = "text-rose-500 font-bold";
-
-                        // Reply sentiment text
-                        let replyText = "-";
-                        if (c.last_campaign_reply) {
-                            const sentiment = c.last_campaign_reply_sentiment || "Neutral";
-                            let sentimentColor = "text-slate-400";
-                            if (sentiment === "Positive") sentimentColor = "text-emerald-500";
-                            else if (sentiment === "Negative") sentimentColor = "text-rose-500";
-                            
-                            replyText = `<span class="italic">"${c.last_campaign_reply}"</span> <span class="${sentimentColor} font-bold">(${sentiment})</span>`;
-                        }
-
-                        return `
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                                <td class="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-100">${c.name}</td>
-                                <td class="py-3.5 px-4 text-slate-500">${c.phone}</td>
-                                <td class="py-3.5 px-4 text-slate-500">${m.last_product_name || '-'}</td>
-                                <td class="py-3.5 px-4">${delayBadge}</td>
-                                <td class="py-3.5 px-4 text-slate-500 font-medium">${c.last_campaign_name || '-'}</td>
-                                <td class="py-3.5 px-4 text-slate-400">${sentDate}</td>
-                                <td class="py-3.5 px-4 ${statusColor}">${c.last_campaign_status || '-'}</td>
-                                <td class="py-3.5 px-4">${replyText}</td>
-                            </tr>
-                        `;
-                    }).join('');
-                }
-
-                // Render Customer cards
-                const gridContainer = document.getElementById('customers-grid');
-                if (customers.length === 0) {
-                    gridContainer.innerHTML = '';
-                } else {
-                    gridContainer.innerHTML = customers.map(c => {
-                        const m = c.replenishment_metrics;
-                        const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                        
-                        let statusBorder = "border-l-emerald-500";
-                        if (m.replenishment_status === "Due Soon") statusBorder = "border-l-amber-500";
-                        else if (m.replenishment_status === "Overdue") statusBorder = "border-l-rose-500";
-
-                        return `
-                            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5 shadow-sm border-l-4 ${statusBorder} flex flex-col gap-2.5">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center font-bold text-indigo-500 text-xs shrink-0">
-                                        ${initials}
-                                    </div>
-                                    <div class="overflow-hidden">
-                                        <h5 class="font-bold text-slate-900 dark:text-slate-100 text-xs truncate leading-snug">${c.name}</h5>
-                                        <p class="text-[10px] text-slate-400 truncate">${c.email}</p>
-                                    </div>
-                                </div>
-                                <div class="flex flex-wrap gap-1 mt-0.5">
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide uppercase ${c.relationship_tier === 'Loyal' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'}">
-                                        ${c.relationship_tier}
-                                    </span>
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/30">
-                                        LTV: ${formatCurrency(c.lifetime_spend)}
-                                    </span>
-                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/30">
-                                        Shopping: ${c.favoured_shopping_method}
-                                    </span>
-                                    ${c.is_blocked_on_whatsapp ? `
-                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">Blocked</span>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-
-                lucide.createIcons();
-                showNotification(`AI Search translation evaluated! Found ${result.total_matched} targets.`);
-
+                // Render outcomes audit table
+                renderOutcomesTable(result.customers);
+                
+                // Render customer detail card grid
+                renderCustomerGrid(result.customers);
+                
+                // Reset Launchpad customization select state
+                hideCustomizerPanel();
+                
+                showNotification(`Segment extraction evaluated! matched ${result.total_matched} targets.`);
+                
             } catch (err) {
-                console.error("AI Search execution failed:", err);
-                showNotification("Networking issue during cohort extraction.", true);
+                console.error("Outreach segment extraction failed:", err);
+                showNotification("Network timeout pulling cohort results.", true);
             } finally {
-                loadingOverlay.classList.add('hidden');
+                document.getElementById("loading-overlay").classList.add("hidden");
             }
         }
 
-        // Run Campaigns dispatches
-        async function runCampaign(id, name) {
-            try {
-                showNotification(`Dispatched execution query for campaign "${name}"...`);
-                const response = await fetch(`/api/campaigns/${id}/run`, { method: 'POST' });
-                const result = await response.json();
-                if (response.ok) {
-                    showNotification(result.detail);
-                } else {
-                    showNotification(`Campaign run failed: ${result.detail}`, true);
+        // Render outcomes history audit table
+        function renderOutcomesTable(customers) {
+            const tableBody = document.getElementById('outcomes-table-body');
+            if (customers.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="py-8 text-center text-slate-400 font-medium">No matching outcomes found in the database.</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = customers.map(c => {
+                const m = c.replenishment_metrics;
+                let delayBadge = `<span class="text-emerald-500 font-bold">Healthy (${m.days_until_empty}d)</span>`;
+                if (m.replenishment_status === "Due Soon") {
+                    delayBadge = `<span class="text-amber-500 font-bold">Due Soon (${m.days_until_empty}d)</span>`;
+                } else if (m.replenishment_status === "Overdue") {
+                    delayBadge = `<span class="text-rose-500 font-bold">Overdue (${Math.abs(m.days_until_empty)}d)</span>`;
                 }
-            } catch (err) {
-                showNotification("Network error executing dispatcher.", true);
-            }
+                
+                const sentDate = c.last_campaign_sent_at ? new Date(c.last_campaign_sent_at).toLocaleDateString() : '-';
+                
+                let statusColor = "text-slate-400";
+                if (c.last_campaign_status === "delivered") statusColor = "text-indigo-500 font-semibold";
+                else if (c.last_campaign_status === "clicked") statusColor = "text-indigo-600 font-bold";
+                else if (c.last_campaign_status === "replied") statusColor = "text-emerald-500 font-bold";
+                else if (c.last_campaign_status === "failed") statusColor = "text-rose-500 font-bold";
+                
+                let replyText = "-";
+                if (c.last_campaign_reply) {
+                    const sentiment = c.last_campaign_reply_sentiment || "Neutral";
+                    let sentimentColor = "text-slate-400";
+                    if (sentiment === "Positive") sentimentColor = "text-emerald-500";
+                    else if (sentiment === "Negative") sentimentColor = "text-rose-500";
+                    
+                    replyText = `<span class="italic">"${c.last_campaign_reply}"</span> <span class="${sentimentColor} font-bold">(${sentiment})</span>`;
+                }
+                
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="py-3.5 px-4 font-semibold text-slate-900 dark:text-slate-100">${c.name}</td>
+                        <td class="py-3.5 px-4 text-slate-500">${c.phone}</td>
+                        <td class="py-3.5 px-4 text-slate-500">${m.last_product_name || '-'}</td>
+                        <td class="py-3.5 px-4">${delayBadge}</td>
+                        <td class="py-3.5 px-4 text-slate-500 font-medium">${c.last_campaign_name || '-'}</td>
+                        <td class="py-3.5 px-4 text-slate-400">${sentDate}</td>
+                        <td class="py-3.5 px-4 ${statusColor}">${c.last_campaign_status || '-'}</td>
+                        <td class="py-3.5 px-4">${replyText}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        // Load static campaigns list
-        async function fetchCampaigns() {
-            try {
-                const campaigns = [
-                    { id: 1, name: "Early Soft Replenishment Ad", type: "Replenishment", tier: "Early", channel: "Instagram", discount: 0 },
-                    { id: 2, name: "Early Churn Feedback Survey", type: "Feedback", tier: "Early", channel: "Email", discount: 0 },
-                    { id: 3, name: "Early Churn Recovery Offer", type: "Replenishment", tier: "Early", channel: "SMS", discount: 20 },
-                    { id: 4, name: "Loyal Bulk Replenishment Offer", type: "Replenishment", tier: "Loyal", channel: "WhatsApp", discount: 15 },
-                    { id: 5, name: "Loyal AI Product Cross-Sell", type: "Cross_Sell", tier: "Loyal", channel: "Instagram", discount: 10 },
-                    { id: 6, name: "Loyal 1-Year Anniversary Milestone", type: "Loyalty", tier: "Loyal", channel: "Email", discount: 25 },
-                ];
-
-                const container = document.getElementById('campaigns-list');
-                container.innerHTML = campaigns.map(c => `
-                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex flex-col gap-2 relative">
-                        <div>
-                            <h4 class="font-bold text-slate-800 dark:text-slate-200 text-xs leading-snug">${c.name}</h4>
-                            <p class="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold mt-0.5">${c.type} • ${c.channel}</p>
+        // Render customer detail grid cards
+        function renderCustomerGrid(customers) {
+            const gridContainer = document.getElementById('customers-grid');
+            if (customers.length === 0) {
+                gridContainer.innerHTML = '';
+                return;
+            }
+            
+            gridContainer.innerHTML = customers.map(c => {
+                const m = c.replenishment_metrics;
+                const initials = c.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                
+                let statusBorder = "border-l-emerald-500";
+                if (m.replenishment_status === "Due Soon") statusBorder = "border-l-amber-500";
+                else if (m.replenishment_status === "Overdue") statusBorder = "border-l-rose-500";
+                
+                return `
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4.5 shadow-sm border-l-4 ${statusBorder} flex flex-col gap-2.5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center font-bold text-indigo-500 text-xs shrink-0">
+                                ${initials}
+                            </div>
+                            <div class="overflow-hidden">
+                                <h5 class="font-bold text-slate-900 dark:text-slate-100 text-xs truncate leading-snug">${c.name}</h5>
+                                <p class="text-[10px] text-slate-400 truncate">${c.email}</p>
+                            </div>
                         </div>
-                        <div class="flex items-center justify-between mt-1 pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
-                            <span class="px-1 rounded text-[9px] font-semibold ${c.tier === 'Loyal' ? 'bg-purple-500/10 text-purple-600' : 'bg-blue-500/10 text-blue-600'}">
-                                ${c.tier}
+                        <div class="flex flex-wrap gap-1 mt-0.5">
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold tracking-wide uppercase ${c.relationship_tier === 'Loyal' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'}">
+                                ${c.relationship_tier}
                             </span>
-                            <button onclick="runCampaign(${c.id}, '${c.name}')" class="bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 hover:text-white dark:hover:text-white transition-colors text-[9px] text-slate-600 dark:text-slate-300 font-bold px-2.5 py-1 rounded-md flex items-center gap-1">
-                                <i data-lucide="play" class="w-2.5 h-2.5"></i>
-                                <span>Run</span>
-                            </button>
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/30">
+                                LTV: ${formatCurrency(c.lifetime_spend)}
+                            </span>
+                            <span class="px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/30">
+                                Method: ${c.favoured_shopping_method}
+                            </span>
+                            ${c.is_blocked_on_whatsapp ? `
+                                <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">Blocked</span>
+                            ` : ''}
                         </div>
                     </div>
-                `).join('');
-                lucide.createIcons();
-            } catch (err) {
-                console.error("Failed to load campaigns list:", err);
+                `;
+            }).join('');
+        }
+
+        // Launchpad selection
+        function selectCampaignToLaunch(id, name, channel, discount) {
+            activeSelectedCampaignId = id;
+            
+            // Mark selected card
+            document.querySelectorAll(".campaign-card").forEach(card => {
+                card.classList.remove("ring-2", "ring-indigo-600", "border-indigo-500");
+            });
+            document.getElementById("custom-campaign-option").classList.remove("ring-2", "ring-indigo-650", "border-indigo-500");
+            
+            if (id === 7) {
+                document.getElementById("custom-campaign-option").classList.add("ring-2", "ring-indigo-600", "border-indigo-500");
+            } else {
+                document.getElementById(`campaign-card-${id}`).classList.add("ring-2", "ring-indigo-600", "border-indigo-500");
             }
+            
+            // Configure inputs
+            document.getElementById("customizer-campaign-title").innerText = `Configure outreach for: ${name}`;
+            document.getElementById("launch-channel").value = channel;
+            document.getElementById("launch-discount").value = discount;
+            
+            // Default template copy
+            let defaultCopy = "";
+            if (id === 7) {
+                defaultCopy = "Hi {customer_name}, we have a special cross-channel promo for you! Restock {product_name} and get {discount_percent}% off today. Code: XENOPROMO";
+            } else {
+                defaultCopy = `Hi {customer_name}, time to replenish your {product_name}! Use code ${name} to get {discount_percent}% off.`;
+            }
+            document.getElementById("launch-msg-template").value = defaultCopy;
+            
+            // Reveal panel
+            document.getElementById("campaign-customizer-panel").classList.remove("hidden");
+            document.getElementById("campaign-customizer-panel").scrollIntoView({ behavior: "smooth" });
+        }
+
+        function hideCustomizerPanel() {
+            document.getElementById("campaign-customizer-panel").classList.add("hidden");
+            document.querySelectorAll(".campaign-card").forEach(card => {
+                card.classList.remove("ring-2", "ring-indigo-600", "border-indigo-500");
+            });
+            const customOpt = document.getElementById("custom-campaign-option");
+            if (customOpt) customOpt.classList.remove("ring-2", "ring-indigo-600", "border-indigo-500");
+            activeSelectedCampaignId = null;
+        }
+
+        // Execute Outreach Dispatch Campaign to active matched customer cohort segment
+        async function executeOutreachDispatch() {
+            if (!activeSelectedCampaignId) return;
+            if (currentCohortCustomers.length === 0) {
+                showNotification("Cannot dispatch outreach to an empty segment.", true);
+                return;
+            }
+            
+            const customerIds = currentCohortCustomers.map(c => c.id);
+            const template = document.getElementById("launch-msg-template").value.trim();
+            const channel = document.getElementById("launch-channel").value;
+            const discount = parseFloat(document.getElementById("launch-discount").value) / 100.0 || 0;
+            
+            let url = `/api/campaigns/${activeSelectedCampaignId}/run`;
+            let payload = {
+                customer_ids: customerIds,
+                message_template: template,
+                discount_rate: discount,
+                channel: channel
+            };
+            
+            if (activeSelectedCampaignId === 7) {
+                url = "/api/campaigns/custom/run";
+                payload = {
+                    name: "Custom Segment Campaign",
+                    campaign_type: "Replenishment",
+                    channel: channel,
+                    discount_rate: discount,
+                    message_template: template,
+                    customer_ids: customerIds
+                };
+            }
+            
+            showNotification("Dispatching campaign messages to segment...");
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    showNotification("Outbound dispatcher failed.", true);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                // Track dispatched logs
+                activeTrackedLogs = data.logs || [];
+                showNotification(`Dispatched messages to ${activeTrackedLogs.length} targets! Tracking status...`);
+                
+                // Render tracking table and start polling callbacks
+                renderTrackerTable();
+                document.getElementById("tracker-section").classList.remove("hidden");
+                document.getElementById("tracker-container").classList.remove("hidden");
+                document.getElementById("nav-tracker").classList.remove("hidden");
+                document.getElementById("tracker-section").scrollIntoView({ behavior: "smooth" });
+                
+                // Initialize/Reset polling callback loop every 1s
+                if (pollingIntervalId) clearInterval(pollingIntervalId);
+                pollingIntervalId = setInterval(pollCallbackTracker, 1000);
+                
+            } catch (err) {
+                console.error("Campaign run failed:", err);
+                showNotification("Network timeout running campaign.", true);
+            }
+        }
+
+        // Render Outbound Tracker Table
+        function renderTrackerTable() {
+            const trackerBody = document.getElementById("tracker-table-body");
+            if (activeTrackedLogs.length === 0) {
+                trackerBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-6 text-center text-slate-400">No active dispatches tracked in this session.</td>
+                    </tr>
+                `;
+                updateTrackerStats();
+                return;
+            }
+            
+            trackerBody.innerHTML = activeTrackedLogs.map(log => {
+                let status = log.status || "sent";
+                if (status === "opened") status = "read";
+                
+                // Build progress indicator
+                let progressIndicator = "";
+                
+                if (status === "failed") {
+                    progressIndicator = `<span class="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-500 font-bold border border-rose-500/20 uppercase tracking-wide text-[9px] animate-pulse">Outbound Failed</span>`;
+                } else {
+                    const states = ["sent", "delivered", "read", "clicked", "replied"];
+                    const activeIndex = states.indexOf(status);
+                    
+                    progressIndicator = `<div class="flex items-center gap-1 font-bold text-[8px] uppercase tracking-wider">`;
+                    
+                    states.forEach((state, i) => {
+                        const isPassed = i <= activeIndex;
+                        let badgeClass = "border border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-600";
+                        if (isPassed) {
+                            if (state === "replied") badgeClass = "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20";
+                            else if (state === "clicked") badgeClass = "bg-indigo-600 text-white shadow-sm shadow-indigo-600/10";
+                            else badgeClass = "bg-indigo-400 text-white";
+                        }
+                        
+                        progressIndicator += `<span class="px-1.5 py-0.5 rounded-md ${badgeClass}">${state}</span>`;
+                        if (i < states.length - 1) {
+                            progressIndicator += `<span class="text-slate-300 dark:text-slate-700 select-none">➔</span>`;
+                        }
+                    });
+                    
+                    progressIndicator += `</div>`;
+                }
+                
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                        <td class="py-3 px-4 font-semibold text-slate-900 dark:text-slate-100">${log.customer_name}</td>
+                        <td class="py-3 px-4 text-slate-500 font-medium">${log.channel}</td>
+                        <td class="py-3 px-4 text-slate-400 font-light truncate max-w-xs leading-normal" title="${log.content}">${log.content}</td>
+                        <td class="py-3 px-4">${progressIndicator}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Update counts in the footer stats bar
+            updateTrackerStats();
+        }
+
+        // Update state counts displayed under the dispatch tracker table
+        function updateTrackerStats() {
+            const counts = { sent: 0, delivered: 0, read: 0, clicked: 0, replied: 0, failed: 0 };
+            activeTrackedLogs.forEach(log => {
+                let status = log.status || "sent";
+                if (status === "opened") status = "read";
+                if (counts.hasOwnProperty(status)) {
+                    counts[status]++;
+                }
+            });
+            
+            document.getElementById("count-sent").innerText = counts.sent;
+            document.getElementById("count-delivered").innerText = counts.delivered;
+            document.getElementById("count-read").innerText = counts.read;
+            document.getElementById("count-clicked").innerText = counts.clicked;
+            document.getElementById("count-replied").innerText = counts.replied;
+            document.getElementById("count-failed").innerText = counts.failed;
+        }
+
+        // Callback loop polling recent webhook receipt logs
+        async function pollCallbackTracker() {
+            if (activeTrackedLogs.length === 0) return;
+            
+            try {
+                const response = await fetch("/api/webhooks/recent?limit=40");
+                if (!response.ok) return;
+                
+                const recentLogs = await response.json();
+                let hasUpdates = false;
+                
+                // Map status updates back to activeTrackedLogs
+                activeTrackedLogs.forEach(trackedLog => {
+                    const matchedLog = recentLogs.find(rl => rl.id === trackedLog.message_id);
+                    if (matchedLog && matchedLog.status !== trackedLog.status) {
+                        trackedLog.status = matchedLog.status;
+                        hasUpdates = true;
+                    }
+                });
+                
+                if (hasUpdates) {
+                    renderTrackerTable();
+                    
+                    // Proactively refresh the outcomes history table to reflect live outcomes
+                    // (But don't call the entire search endpoint again so that current user view is not interrupted)
+                    updateOutcomesStatusesInPlace(recentLogs);
+                }
+                
+                // Stop interval if all logs reach a final terminal state (replied, failed, or clicked/read and no updates for a long time)
+                const isAllFinished = activeTrackedLogs.every(log => ["replied", "failed", "clicked"].includes(log.status));
+                if (isAllFinished) {
+                    clearInterval(pollingIntervalId);
+                    pollingIntervalId = null;
+                    showNotification("Campaign dispatch tracking finished. All terminal states reached.");
+                }
+                
+            } catch (err) {
+                console.error("Polling callback receipts tracker failed:", err);
+            }
+        }
+
+        // Update the audit table statuses dynamically
+        function updateOutcomesStatusesInPlace(recentLogs) {
+            // Re-render customers PERSONA list with updated statuses in active workspace
+            let matchedUpdate = false;
+            currentCohortCustomers.forEach(c => {
+                // If this customer matches tracked logs, update their persona logs too
+                const trackedLog = activeTrackedLogs.find(tl => tl.customer_id === c.id);
+                if (trackedLog) {
+                    c.last_campaign_status = trackedLog.status;
+                    
+                    // Find matching reply text in webhook receipt logs if replied
+                    if (trackedLog.status === "replied") {
+                        const matchedLog = recentLogs.find(rl => rl.id === trackedLog.message_id);
+                        if (matchedLog) {
+                            c.last_campaign_reply = matchedLog.customer_reply;
+                            c.last_campaign_reply_sentiment = matchedLog.reply_sentiment;
+                        }
+                    }
+                    matchedUpdate = true;
+                }
+            });
+            
+            if (matchedUpdate) {
+                renderOutcomesTable(currentCohortCustomers);
+            }
+        }
+
+        // Synchronize selector values between segment builders
+        function syncStructuredFilters(src, dest) {
+            document.getElementById(dest + "-category").value = document.getElementById(src + "-category").value;
+            document.getElementById(dest + "-region").value = document.getElementById(src + "-region").value;
+            document.getElementById(dest + "-method").value = document.getElementById(src + "-method").value;
+            document.getElementById(dest + "-tier").value = document.getElementById(src + "-tier").value;
+            document.getElementById(dest + "-replenish").value = document.getElementById(src + "-replenish").value;
+            
+            populateProductsDropdown(document.getElementById(src + "-category").value, dest + "-product");
+            document.getElementById(dest + "-product").value = document.getElementById(src + "-product").value;
+        }
+
+        // Trigger refined structured search execution
+        async function executeRefineStructuredSearch() {
+            const payload = {
+                category: document.getElementById("refine-category").value || null,
+                product_id: parseInt(document.getElementById("refine-product").value) || null,
+                region: document.getElementById("refine-region").value || null,
+                favoured_shopping_method: document.getElementById("refine-method").value || null,
+                relationship_tier: document.getElementById("refine-tier").value || null,
+                replenishment_status: document.getElementById("refine-replenish").value || null
+            };
+            
+            // Sync choices back to zero-state form in case user resets workspace later
+            syncStructuredFilters("refine", "filter");
+            executeSearchCall("/api/analytics/segment", payload, false);
+        }
+
+        // Show/Hide collapsible refinement filters
+        function toggleRefineFilters() {
+            const panel = document.getElementById("refine-filters-panel");
+            if (panel.classList.contains("hidden")) {
+                panel.classList.remove("hidden");
+                // Ensure values are synced from zero-state segment form on open
+                syncStructuredFilters("filter", "refine");
+            } else {
+                panel.classList.add("hidden");
+            }
+        }
+
+        // Clear refined structured inputs
+        function resetRefineFiltersPanel() {
+            document.getElementById("refine-category").value = "";
+            document.getElementById("refine-region").value = "";
+            document.getElementById("refine-method").value = "";
+            document.getElementById("refine-tier").value = "";
+            document.getElementById("refine-replenish").value = "";
+            populateProductsDropdown("", "refine-product");
+        }
+
+        // Setup Intersection Observer for Left Sidebar Navigation Highlight
+        function setupNavigationObserver() {
+            const sections = [
+                document.getElementById('summary-section'),
+                document.getElementById('launchpad-section'),
+                document.getElementById('tracker-section'),
+                document.getElementById('analytics-section'),
+                document.getElementById('cohort-section')
+            ].filter(Boolean);
+            
+            const navIds = {
+                'summary-section': 'nav-summary',
+                'launchpad-section': 'nav-launchpad',
+                'tracker-section': 'nav-tracker',
+                'analytics-section': 'nav-analytics',
+                'cohort-section': 'nav-cohort'
+            };
+            
+            const observerOptions = {
+                root: null,
+                rootMargin: '-20% 0px -50% 0px',
+                threshold: 0
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    // Only highlight link if section is visible
+                    if (entry.isIntersecting && !entry.target.classList.contains('hidden')) {
+                        const activeId = navIds[entry.target.id];
+                        
+                        // Reset links styling
+                        Object.values(navIds).forEach(id => {
+                            const link = document.getElementById(id);
+                            if (link) {
+                                link.className = "flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-850 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors";
+                            }
+                        });
+                        
+                        // Set active link style
+                        const activeLink = document.getElementById(activeId);
+                        if (activeLink) {
+                            activeLink.className = "flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 transition-colors";
+                        }
+                    }
+                });
+            }, observerOptions);
+            
+            sections.forEach(section => observer.observe(section));
         }
 
         // Bind Search events
-        searchBtn.addEventListener('click', executeSearch);
-        aiInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') executeSearch();
+        document.getElementById('search-btn').addEventListener('click', executeAISearch);
+        document.getElementById('ai-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                executeAISearch();
+            }
         });
+        
+        document.getElementById('filter-search-btn').addEventListener('click', executeStructuredSearch);
 
         // Document initialize
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
-            fetchCampaigns();
-            clearSearch();
+            populateProductsDropdown();
+            resetWorkspace();
+            setupNavigationObserver();
         });
     </script>
 </body>

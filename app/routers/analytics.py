@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
+from sqlalchemy.orm import aliased
 from app.database import get_session
-from app.models import Customer, Order, Campaign, CommunicationLog
+from app.models import Customer, Order, Campaign, CommunicationLog, Product
 from app.schemas import SegmentQuery, SegmentResult
 from app.routers.customers import build_customer_persona, preload_customer_data
 
@@ -24,15 +25,36 @@ def segment_customers(query_filters: SegmentQuery, session: Session = Depends(ge
         query = query.where(Customer.preferred_channel == query_filters.preferred_channel)
         
     # 2. Dynamically apply Groq-parsed database join filters
-    # A. Product Filter (Subquery to avoid duplicate customer rows)
+    # A. Product Filter (Strictly on the latest order)
     if query_filters.product_id is not None:
-        query = query.where(
-            Customer.id.in_(
-                select(Order.customer_id).where(Order.product_id == query_filters.product_id)
+        o2 = aliased(Order)
+        latest_order_product_stmt = (
+            select(Order.customer_id)
+            .where(Order.product_id == query_filters.product_id)
+            .where(
+                Order.order_date == select(func.max(o2.order_date))
+                .where(o2.customer_id == Order.customer_id)
+                .scalar_subquery()
             )
         )
+        query = query.where(Customer.id.in_(latest_order_product_stmt))
         
-    # B. Campaign, Channel, Status, and Discount filters on Communication Logs
+    # B. Category Filter (Strictly on the latest order)
+    if query_filters.category is not None:
+        o3 = aliased(Order)
+        latest_order_category_stmt = (
+            select(Order.customer_id)
+            .join(Product, Product.id == Order.product_id)
+            .where(Product.category == query_filters.category)
+            .where(
+                Order.order_date == select(func.max(o3.order_date))
+                .where(o3.customer_id == Order.customer_id)
+                .scalar_subquery()
+            )
+        )
+        query = query.where(Customer.id.in_(latest_order_category_stmt))
+        
+    # C. Campaign, Channel, Status, and Discount filters on Communication Logs
     log_filters = []
     if query_filters.campaign_id is not None:
         log_filters.append(CommunicationLog.campaign_id == query_filters.campaign_id)
@@ -43,6 +65,7 @@ def segment_customers(query_filters: SegmentQuery, session: Session = Depends(ge
         
     if query_filters.has_discount is not None:
         discount_op = Campaign.discount_rate > 0 if query_filters.has_discount else Campaign.discount_rate == 0
+        log_filters.append(discount_op)
         log_stmt = select(CommunicationLog.customer_id).join(Campaign, Campaign.id == CommunicationLog.campaign_id)
     else:
         log_stmt = select(CommunicationLog.customer_id)
@@ -54,9 +77,16 @@ def segment_customers(query_filters: SegmentQuery, session: Session = Depends(ge
         
     customers = session.exec(query).all()
     
-    # Bulk preload database records
+    # Bulk preload database records, passing log query filters to only cache matching logs
     customer_ids = [c.id for c in customers]
-    orders_cache, latest_log_cache = preload_customer_data(customer_ids, session)
+    orders_cache, latest_log_cache = preload_customer_data(
+        customer_ids, 
+        session,
+        campaign_id=query_filters.campaign_id,
+        status=query_filters.status,
+        channel=query_filters.channel,
+        has_discount=query_filters.has_discount
+    )
     
     matched_customers = []
     region_breakdown = {}
@@ -69,7 +99,11 @@ def segment_customers(query_filters: SegmentQuery, session: Session = Depends(ge
             customer, 
             session, 
             orders=orders_cache.get(customer.id, []), 
-            latest_log=latest_log_cache.get(customer.id)
+            latest_log=latest_log_cache.get(customer.id),
+            campaign_id=query_filters.campaign_id,
+            status=query_filters.status,
+            channel=query_filters.channel,
+            has_discount=query_filters.has_discount
         )
         
         # Filter by replenishment status in Python since it's a dynamic calculated field

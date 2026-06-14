@@ -8,7 +8,14 @@ from app.services.replenishment import calculate_replenishment_metrics
 
 router = APIRouter(prefix="/api/customers", tags=["Customers"])
 
-def preload_customer_data(customer_ids: List[int], session: Session) -> tuple[Dict[int, List[Order]], Dict[int, tuple]]:
+def preload_customer_data(
+    customer_ids: List[int], 
+    session: Session,
+    campaign_id: Optional[int] = None,
+    status: Optional[str] = None,
+    channel: Optional[str] = None,
+    has_discount: Optional[bool] = None
+) -> tuple[Dict[int, List[Order]], Dict[int, tuple]]:
     """
     Preloads orders and latest communication logs for a collection of customer IDs in bulk.
     Safe from SQLite parameter count limits by chunking execution.
@@ -36,8 +43,18 @@ def preload_customer_data(customer_ids: List[int], session: Session) -> tuple[Di
             select(CommunicationLog, Campaign.name)
             .join(Campaign, Campaign.id == CommunicationLog.campaign_id)
             .where(CommunicationLog.customer_id.in_(chunk))
-            .order_by(CommunicationLog.sent_at.desc())
         )
+        if campaign_id is not None:
+            log_stmt = log_stmt.where(CommunicationLog.campaign_id == campaign_id)
+        if status is not None:
+            log_stmt = log_stmt.where(CommunicationLog.status == status)
+        if channel is not None:
+            log_stmt = log_stmt.where(CommunicationLog.channel_used == channel)
+        if has_discount is not None:
+            discount_op = Campaign.discount_rate > 0 if has_discount else Campaign.discount_rate == 0
+            log_stmt = log_stmt.where(discount_op)
+            
+        log_stmt = log_stmt.order_by(CommunicationLog.sent_at.desc())
         all_logs = session.exec(log_stmt).all()
         for log, campaign_name in all_logs:
             if log.customer_id not in latest_log_cache:
@@ -49,7 +66,11 @@ def build_customer_persona(
     customer: Customer, 
     session: Session,
     orders: Optional[List[Order]] = None,
-    latest_log: Optional[tuple] = None
+    latest_log: Optional[tuple] = None,
+    campaign_id: Optional[int] = None,
+    status: Optional[str] = None,
+    channel: Optional[str] = None,
+    has_discount: Optional[bool] = None
 ) -> CustomerPersona:
     # Query all orders for aggregation if not preloaded
     if orders is None:
@@ -73,9 +94,18 @@ def build_customer_persona(
             select(CommunicationLog, Campaign.name)
             .join(Campaign, Campaign.id == CommunicationLog.campaign_id)
             .where(CommunicationLog.customer_id == customer.id)
-            .order_by(CommunicationLog.sent_at.desc())
-            .limit(1)
         )
+        if campaign_id is not None:
+            log_stmt = log_stmt.where(CommunicationLog.campaign_id == campaign_id)
+        if status is not None:
+            log_stmt = log_stmt.where(CommunicationLog.status == status)
+        if channel is not None:
+            log_stmt = log_stmt.where(CommunicationLog.channel_used == channel)
+        if has_discount is not None:
+            discount_op = Campaign.discount_rate > 0 if has_discount else Campaign.discount_rate == 0
+            log_stmt = log_stmt.where(discount_op)
+            
+        log_stmt = log_stmt.order_by(CommunicationLog.sent_at.desc()).limit(1)
         latest_log = session.exec(log_stmt).first()
     
     last_campaign_name = None

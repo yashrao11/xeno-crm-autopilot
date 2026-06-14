@@ -1,9 +1,9 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from app.database import get_session
 from app.models import Campaign, Customer, Product
-from app.schemas import CampaignCreate, CampaignResponse, CampaignTarget, ProductShort
+from app.schemas import CampaignCreate, CampaignResponse, CampaignTarget, ProductShort, CampaignRunRequest, CustomCampaignRunRequest
 from app.routers.customers import build_customer_persona, preload_customer_data
 from app.services.dispatcher import dispatch_campaign_to_targets
 
@@ -86,13 +86,54 @@ def get_campaign_targets(id: int, session: Session = Depends(get_session)):
     return targets
 
 @router.post("/{id}/run")
-async def run_campaign(id: int, session: Session = Depends(get_session)):
+async def run_campaign(id: int, req: Optional[CampaignRunRequest] = None, session: Session = Depends(get_session)):
     campaign = session.get(Campaign, id)
     if not campaign:
         raise HTTPException(status_code=404, detail=f"Campaign with ID {id} not found")
         
-    dispatched_count = await dispatch_campaign_to_targets(id, session)
+    msg_template = req.message_template if req else None
+    disc_rate = req.discount_rate if req else None
+    chan = req.channel if req else None
+    cust_ids = req.customer_ids if req else None
+    
+    dispatched_logs = await dispatch_campaign_to_targets(
+        id, 
+        session, 
+        customer_ids=cust_ids,
+        message_template=msg_template,
+        discount_rate=disc_rate,
+        channel=chan
+    )
     return {
         "status": "success",
-        "detail": f"Dispatched campaign {id} to {dispatched_count} target customers."
+        "detail": f"Dispatched campaign {id} to {len(dispatched_logs)} target customers.",
+        "logs": dispatched_logs
+    }
+
+@router.post("/custom/run")
+async def run_custom_campaign(req: CustomCampaignRunRequest, session: Session = Depends(get_session)):
+    campaign = Campaign(
+        name=req.name,
+        campaign_type=req.campaign_type,
+        target_tier="All",
+        channel=req.channel,
+        discount_rate=req.discount_rate
+    )
+    session.add(campaign)
+    session.commit()
+    session.refresh(campaign)
+    
+    dispatched_logs = await dispatch_campaign_to_targets(
+        campaign.id, 
+        session, 
+        customer_ids=req.customer_ids,
+        message_template=req.message_template,
+        discount_rate=req.discount_rate,
+        channel=req.channel
+    )
+    return {
+        "status": "success",
+        "detail": f"Dispatched custom campaign '{campaign.name}' to {len(dispatched_logs)} target customers.",
+        "campaign_id": campaign.id,
+        "logs": dispatched_logs
     }

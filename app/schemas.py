@@ -52,10 +52,25 @@ class SegmentQuery(BaseModel):
     
     # Dynamic segmentation filters parsed by Groq
     product_id: Optional[int] = None
+    category: Optional[str] = None
     campaign_id: Optional[int] = None
     channel: Optional[str] = None
     status: Optional[str] = None
     has_discount: Optional[bool] = None
+
+class CampaignRunRequest(BaseModel):
+    customer_ids: Optional[List[int]] = None
+    message_template: Optional[str] = None
+    discount_rate: Optional[float] = None
+    channel: Optional[str] = None
+
+class CustomCampaignRunRequest(BaseModel):
+    name: str
+    campaign_type: str = "Replenishment"
+    channel: str
+    discount_rate: float
+    message_template: str
+    customer_ids: List[int]
 
 class SegmentResult(BaseModel):
     total_matched: int
