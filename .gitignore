@@ -1,0 +1,21 @@
+# Virtual Environment (Excludes python packages)
+venv/
+.venv/
+env/
+ENV/
+
+# Secrets & Local Configurations (Excludes your Groq Key)
+.env
+
+# Local Databases (Excludes SQLite file, Render seeds its own copy)
+xeno_crm.db
+*.db
+*.sqlite3
+
+# Python Cache & Metadata
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.vscode/
+.DS_Store
