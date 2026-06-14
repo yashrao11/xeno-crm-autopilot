@@ -70,8 +70,8 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
             logger.info(f"Message {req.message_id} failed delivery. Stopping cycle.")
             return
             
-        # Transition 2: read (70% probability for Email/WhatsApp, 0% for SMS/Others)
-        if req.channel in ["Email", "WhatsApp", "Instagram", "Facebook"]:
+        # Transition 2: read (70% probability for Email/WhatsApp/RCS, 0% for SMS/Others)
+        if req.channel in ["Email", "WhatsApp", "Instagram", "Facebook", "RCS"]:
             await asyncio.sleep(2.0)
             has_read = random.random() < 0.70
             if has_read:
