@@ -125,6 +125,9 @@ async def dispatch_campaign_to_targets(
             "status": "sent"
         })
         
+    # Close session to release the database connection before making concurrent HTTP requests
+    session.close()
+        
     # 5. Dispatch payloads concurrently
     async with httpx.AsyncClient() as client:
         async def send_message(payload):

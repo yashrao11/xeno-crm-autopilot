@@ -35,6 +35,8 @@ def analyze_sentiment(reply: str) -> str:
 
 async def trigger_email_fallback(customer_id: int, campaign_id: int, original_content: str):
     logger.info(f"Starting Email fallback for Customer {customer_id}, Campaign {campaign_id}...")
+    
+    # 1. Execute DB changes in a localized session block
     with Session(engine) as session:
         customer = session.get(Customer, customer_id)
         campaign = session.get(Campaign, campaign_id)
@@ -54,23 +56,31 @@ async def trigger_email_fallback(customer_id: int, campaign_id: int, original_co
         session.commit()
         session.refresh(fallback_log)
         
-        fallback_content = f"Hi {customer.name}, we couldn't reach you on WhatsApp. Here is your campaign fallback: {campaign.name}! Discount: {int(campaign.discount_rate * 100)}%."
-        
-        payload = {
-            "message_id": fallback_log.id,
-            "recipient_phone_or_email": customer.email,
-            "channel": "Email",
-            "content": fallback_content,
-            "callback_url": "http://localhost:8000/api/webhooks/receipt"
-        }
-        
-        try:
-            async with httpx.AsyncClient() as client:
-                logger.info(f"Dispatching fallback message {fallback_log.id} to Channel Stub...")
-                response = await client.post("http://localhost:8001/channel/send", json=payload, timeout=5.0)
-                logger.info(f"Fallback dispatch result status: {response.status_code}")
-        except Exception as e:
-            logger.error(f"Failed to dispatch fallback message to channel stub: {e}")
+        # Read attributes before closing the session to prevent lazy-loading issues
+        customer_name = customer.name
+        customer_email = customer.email
+        campaign_name = campaign.name
+        discount_rate = campaign.discount_rate
+        log_id = fallback_log.id
+
+    # Session closed, connection returned to QueuePool
+    fallback_content = f"Hi {customer_name}, we couldn't reach you on WhatsApp. Here is your campaign fallback: {campaign_name}! Discount: {int(discount_rate * 100)}%."
+    
+    payload = {
+        "message_id": log_id,
+        "recipient_phone_or_email": customer_email,
+        "channel": "Email",
+        "content": fallback_content,
+        "callback_url": "http://localhost:8000/api/webhooks/receipt"
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            logger.info(f"Dispatching fallback message {log_id} to Channel Stub...")
+            response = await client.post("http://localhost:8001/channel/send", json=payload, timeout=5.0)
+            logger.info(f"Fallback dispatch result status: {response.status_code}")
+    except Exception as e:
+        logger.error(f"Failed to dispatch fallback message to channel stub: {e}")
 
 @router.post("/receipt")
 def receive_receipt(payload: WebhookPayload, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
@@ -79,6 +89,7 @@ def receive_receipt(payload: WebhookPayload, background_tasks: BackgroundTasks, 
     log = session.get(CommunicationLog, payload.message_id)
     if not log:
         logger.error(f"Communication log with ID {payload.message_id} not found.")
+        session.close()
         return {"status": "error", "detail": "Log not found"}
         
     # Update log status
@@ -111,10 +122,19 @@ def receive_receipt(payload: WebhookPayload, background_tasks: BackgroundTasks, 
             session.commit()
             logger.info(f"Customer {customer.id} blocked on WhatsApp. Preferred channel switched to Email.")
             
-            # Trigger background task for email fallback
-            original_content = f"Campaign: {log.campaign_id}"
-            background_tasks.add_task(trigger_email_fallback, customer.id, log.campaign_id, original_content)
+            # Capture variables for fallback background task
+            cust_id = customer.id
+            camp_id = log.campaign_id
             
+            # Close session before yielding to background task to free connection immediately
+            session.close()
+            
+            # Trigger background task for email fallback
+            original_content = f"Campaign: {camp_id}"
+            background_tasks.add_task(trigger_email_fallback, cust_id, camp_id, original_content)
+            return {"status": "success", "detail": "Callback receipt processed successfully"}
+            
+    session.close()
     return {"status": "success", "detail": "Callback receipt processed successfully"}
 
 @router.get("/recent")
