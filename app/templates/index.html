@@ -1226,14 +1226,32 @@
             updateTrackerStats();
         }
 
-        // Update state counts displayed under the dispatch tracker table
+        // Update state counts displayed under the dispatch tracker table (cumulative funnel)
         function updateTrackerStats() {
             const counts = { sent: 0, delivered: 0, read: 0, clicked: 0, replied: 0, failed: 0 };
             activeTrackedLogs.forEach(log => {
                 let status = log.status || "sent";
                 if (status === "opened") status = "read";
-                if (counts.hasOwnProperty(status)) {
-                    counts[status]++;
+                
+                // Every message is sent
+                counts.sent++;
+                
+                if (status === "failed") {
+                    counts.failed++;
+                } else if (status === "delivered") {
+                    counts.delivered++;
+                } else if (status === "read") {
+                    counts.delivered++;
+                    counts.read++;
+                } else if (status === "clicked") {
+                    counts.delivered++;
+                    counts.read++;
+                    counts.clicked++;
+                } else if (status === "replied") {
+                    counts.delivered++;
+                    counts.read++;
+                    counts.clicked++;
+                    counts.replied++;
                 }
             });
             
@@ -1245,12 +1263,17 @@
             document.getElementById("count-failed").innerText = counts.failed;
         }
 
-        // Callback loop polling recent webhook receipt logs
+        // Callback loop polling webhook receipt logs via batch status request
         async function pollCallbackTracker() {
             if (activeTrackedLogs.length === 0) return;
             
             try {
-                const response = await fetch("/api/webhooks/recent?limit=40");
+                const messageIds = activeTrackedLogs.map(l => l.message_id);
+                const response = await fetch("/api/webhooks/batch-status", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message_ids: messageIds })
+                });
                 if (!response.ok) return;
                 
                 const recentLogs = await response.json();

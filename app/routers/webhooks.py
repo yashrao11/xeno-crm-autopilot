@@ -1,9 +1,12 @@
 import os
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, List
 from fastapi import APIRouter, Depends, BackgroundTasks, Request
 from pydantic import BaseModel
+
+class BatchStatusRequest(BaseModel):
+    message_ids: List[int]
 from sqlmodel import Session, select
 import httpx
 
@@ -170,3 +173,20 @@ def get_recent_receipts(limit: int = 15, session: Session = Depends(get_session)
             "reply_sentiment": log.reply_sentiment
         })
     return log_list
+
+@router.post("/batch-status")
+def get_batch_status(req: BatchStatusRequest, session: Session = Depends(get_session)):
+    if not req.message_ids:
+        return []
+    statement = select(CommunicationLog).where(CommunicationLog.id.in_(req.message_ids))
+    results = session.exec(statement).all()
+    
+    status_list = []
+    for log in results:
+        status_list.append({
+            "id": log.id,
+            "status": log.status,
+            "customer_reply": log.customer_reply,
+            "reply_sentiment": log.reply_sentiment
+        })
+    return status_list

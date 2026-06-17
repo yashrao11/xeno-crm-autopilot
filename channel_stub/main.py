@@ -53,7 +53,7 @@ async def post_webhook(client: httpx.AsyncClient, url: str, payload: dict):
 async def simulate_message_lifecycle(req: SendMessageRequest):
     async with httpx.AsyncClient() as client:
         # Simulate network delay for transmission
-        delay = random.uniform(1.0, 4.0)
+        delay = random.uniform(2.0, 5.0)
         logger.info(f"Simulating sending message {req.message_id} on channel {req.channel}. Delay: {delay:.2f}s")
         await asyncio.sleep(delay)
         
@@ -72,7 +72,7 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
             
         # Transition 2: read (95% probability for Email/WhatsApp/RCS/SMS, 0% for Others)
         if req.channel in ["Email", "WhatsApp", "Instagram", "Facebook", "RCS", "SMS"]:
-            await asyncio.sleep(2.0)
+            await asyncio.sleep(5.0)
             has_read = random.random() < 0.95
             if has_read:
                 await post_webhook(client, req.callback_url, {
@@ -81,7 +81,7 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
                 })
                 
                 # Transition 3: clicked (85% probability)
-                await asyncio.sleep(2.0)
+                await asyncio.sleep(5.0)
                 has_clicked = random.random() < 0.85
                 if has_clicked:
                     await post_webhook(client, req.callback_url, {
@@ -90,7 +90,7 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
                     })
                     
                     # Transition 4: replied (60% probability)
-                    await asyncio.sleep(3.0)
+                    await asyncio.sleep(5.0)
                     has_replied = random.random() < 0.60
                     if has_replied:
                         # Select random reply category

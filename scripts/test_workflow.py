@@ -47,12 +47,12 @@ def main():
             print(f"✓ Campaign Run Response: {run_response.json()}")
             
         # 4. Wait for async lifecycle simulations and webhook callbacks
-        # Since delays are 1-4s for delivery, 2s for read, 2s for click, 3s for reply,
-        # we will wait 15 seconds to allow logs to transition.
-        print("Waiting 15 seconds for async transmission simulations and fallback webhooks...")
-        for elapsed in range(1, 16):
+        # Since delays are 2-5s for delivery, 5s for read, 5s for click, 5s for reply,
+        # we will wait 25 seconds to allow logs to transition.
+        print("Waiting 25 seconds for async transmission simulations and fallback webhooks...")
+        for elapsed in range(1, 26):
             time.sleep(1.0)
-            if elapsed % 3 == 0:
+            if elapsed % 5 == 0:
                 print(f"  ... {elapsed}s elapsed ...")
                 
         # 5. Database assertions using SQLModel session
