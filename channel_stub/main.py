@@ -70,28 +70,28 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
             logger.info(f"Message {req.message_id} failed delivery. Stopping cycle.")
             return
             
-        # Transition 2: read (70% probability for Email/WhatsApp/RCS, 0% for SMS/Others)
-        if req.channel in ["Email", "WhatsApp", "Instagram", "Facebook", "RCS"]:
+        # Transition 2: read (95% probability for Email/WhatsApp/RCS/SMS, 0% for Others)
+        if req.channel in ["Email", "WhatsApp", "Instagram", "Facebook", "RCS", "SMS"]:
             await asyncio.sleep(2.0)
-            has_read = random.random() < 0.70
+            has_read = random.random() < 0.95
             if has_read:
                 await post_webhook(client, req.callback_url, {
                     "message_id": req.message_id,
                     "status": "read"
                 })
                 
-                # Transition 3: clicked (30% probability)
+                # Transition 3: clicked (85% probability)
                 await asyncio.sleep(2.0)
-                has_clicked = random.random() < 0.30
+                has_clicked = random.random() < 0.85
                 if has_clicked:
                     await post_webhook(client, req.callback_url, {
                         "message_id": req.message_id,
                         "status": "clicked"
                     })
                     
-                    # Transition 4: replied (10% probability)
+                    # Transition 4: replied (60% probability)
                     await asyncio.sleep(3.0)
-                    has_replied = random.random() < 0.10
+                    has_replied = random.random() < 0.60
                     if has_replied:
                         # Select random reply category
                         reply_cat = random.choice(["positive", "neutral", "negative"])

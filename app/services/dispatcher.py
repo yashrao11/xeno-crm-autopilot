@@ -17,7 +17,8 @@ async def dispatch_campaign_to_targets(
     customer_ids: Optional[List[int]] = None,
     message_template: Optional[str] = None,
     discount_rate: Optional[float] = None,
-    channel: Optional[str] = None
+    channel: Optional[str] = None,
+    callback_url: Optional[str] = None
 ) -> List[Dict[str, Any]]:
     """
     Retrieves target customers (either custom segment or matching campaign target tier) and
@@ -107,13 +108,13 @@ async def dispatch_campaign_to_targets(
             
         recipient = customer.email if active_channel == "Email" else customer.phone
         
-        callback_url = os.getenv("CRM_CALLBACK_URL", "http://localhost:8000/api/webhooks/receipt")
+        active_callback = callback_url if callback_url else os.getenv("CRM_CALLBACK_URL", "http://localhost:8000/api/webhooks/receipt")
         payload = {
             "message_id": log.id,
             "recipient_phone_or_email": recipient,
             "channel": active_channel,
             "content": content,
-            "callback_url": callback_url
+            "callback_url": active_callback
         }
         payloads.append(payload)
         

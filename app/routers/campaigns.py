@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session, select
 from app.database import get_session
 from app.models import Campaign, Customer, Product
@@ -86,7 +86,7 @@ def get_campaign_targets(id: int, session: Session = Depends(get_session)):
     return targets
 
 @router.post("/custom/run")
-async def run_custom_campaign(req: CustomCampaignRunRequest, session: Session = Depends(get_session)):
+async def run_custom_campaign(req: CustomCampaignRunRequest, request: Request, session: Session = Depends(get_session)):
     campaign = Campaign(
         name=req.name,
         campaign_type=req.campaign_type,
@@ -98,13 +98,17 @@ async def run_custom_campaign(req: CustomCampaignRunRequest, session: Session = 
     session.commit()
     session.refresh(campaign)
     
+    crm_base_url = str(request.base_url).rstrip("/")
+    callback_url = f"{crm_base_url}/api/webhooks/receipt"
+    
     dispatched_logs = await dispatch_campaign_to_targets(
         campaign.id, 
         session, 
         customer_ids=req.customer_ids,
         message_template=req.message_template,
         discount_rate=req.discount_rate,
-        channel=req.channel
+        channel=req.channel,
+        callback_url=callback_url
     )
     return {
         "status": "success",
@@ -114,7 +118,7 @@ async def run_custom_campaign(req: CustomCampaignRunRequest, session: Session = 
     }
 
 @router.post("/{id}/run")
-async def run_campaign(id: int, req: Optional[CampaignRunRequest] = None, session: Session = Depends(get_session)):
+async def run_campaign(id: int, request: Request, req: Optional[CampaignRunRequest] = None, session: Session = Depends(get_session)):
     campaign = session.get(Campaign, id)
     if not campaign:
         raise HTTPException(status_code=404, detail=f"Campaign with ID {id} not found")
@@ -124,13 +128,17 @@ async def run_campaign(id: int, req: Optional[CampaignRunRequest] = None, sessio
     chan = req.channel if req else None
     cust_ids = req.customer_ids if req else None
     
+    crm_base_url = str(request.base_url).rstrip("/")
+    callback_url = f"{crm_base_url}/api/webhooks/receipt"
+    
     dispatched_logs = await dispatch_campaign_to_targets(
         id, 
         session, 
         customer_ids=cust_ids,
         message_template=msg_template,
         discount_rate=disc_rate,
-        channel=chan
+        channel=chan,
+        callback_url=callback_url
     )
     return {
         "status": "success",

@@ -2,7 +2,7 @@ import os
 import logging
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, Request
 from pydantic import BaseModel
 from sqlmodel import Session, select
 import httpx
@@ -34,7 +34,7 @@ def analyze_sentiment(reply: str) -> str:
             return "Positive"
     return "Neutral"
 
-async def trigger_email_fallback(customer_id: int, campaign_id: int, original_content: str):
+async def trigger_email_fallback(customer_id: int, campaign_id: int, original_content: str, callback_url: Optional[str] = None):
     logger.info(f"Starting Email fallback for Customer {customer_id}, Campaign {campaign_id}...")
     
     # 1. Execute DB changes in a localized session block
@@ -67,13 +67,13 @@ async def trigger_email_fallback(customer_id: int, campaign_id: int, original_co
     # Session closed, connection returned to QueuePool
     fallback_content = f"Hi {customer_name}, we couldn't reach you on WhatsApp. Here is your campaign fallback: {campaign_name}! Discount: {int(discount_rate * 100)}%."
     
-    callback_url = os.getenv("CRM_CALLBACK_URL", "http://localhost:8000/api/webhooks/receipt")
+    active_callback = callback_url if callback_url else os.getenv("CRM_CALLBACK_URL", "http://localhost:8000/api/webhooks/receipt")
     payload = {
         "message_id": log_id,
         "recipient_phone_or_email": customer_email,
         "channel": "Email",
         "content": fallback_content,
-        "callback_url": callback_url
+        "callback_url": active_callback
     }
     
     try:
@@ -86,7 +86,7 @@ async def trigger_email_fallback(customer_id: int, campaign_id: int, original_co
         logger.error(f"Failed to dispatch fallback message to channel stub: {e}")
 
 @router.post("/receipt")
-def receive_receipt(payload: WebhookPayload, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):
+def receive_receipt(payload: WebhookPayload, background_tasks: BackgroundTasks, request: Request, session: Session = Depends(get_session)):
     logger.info(f"Received webhook callback for message {payload.message_id}. Status: {payload.status}")
     
     log = session.get(CommunicationLog, payload.message_id)
@@ -132,9 +132,13 @@ def receive_receipt(payload: WebhookPayload, background_tasks: BackgroundTasks, 
             # Close session before yielding to background task to free connection immediately
             session.close()
             
+            # Extract request base url
+            crm_base_url = str(request.base_url).rstrip("/")
+            callback_url = f"{crm_base_url}/api/webhooks/receipt"
+            
             # Trigger background task for email fallback
             original_content = f"Campaign: {camp_id}"
-            background_tasks.add_task(trigger_email_fallback, cust_id, camp_id, original_content)
+            background_tasks.add_task(trigger_email_fallback, cust_id, camp_id, original_content, callback_url)
             return {"status": "success", "detail": "Callback receipt processed successfully"}
             
     session.close()
