@@ -37,15 +37,20 @@ def calculate_replenishment_metrics(customer_id: int, session: Session, comparis
     if not hasattr(calculate_replenishment_metrics, "_product_cache"):
         calculate_replenishment_metrics._product_cache = {}
         
-    product = calculate_replenishment_metrics._product_cache.get(order.product_id)
-    if not product:
+    cached_info = calculate_replenishment_metrics._product_cache.get(order.product_id)
+    if not cached_info:
         product_statement = select(Product).where(Product.id == order.product_id)
         product = session.exec(product_statement).one()
-        calculate_replenishment_metrics._product_cache[order.product_id] = product
+        cached_info = {
+            "id": product.id,
+            "name": product.name,
+            "estimated_lifespan_days": product.estimated_lifespan_days
+        }
+        calculate_replenishment_metrics._product_cache[order.product_id] = cached_info
     
     # Perform calculations
     days_since_last_purchase = (comparison_date - order.order_date).days
-    predicted_empty_date = order.order_date + timedelta(days=product.estimated_lifespan_days)
+    predicted_empty_date = order.order_date + timedelta(days=cached_info["estimated_lifespan_days"])
     days_until_empty = (predicted_empty_date - comparison_date).days
     
     # Determine status
@@ -59,9 +64,9 @@ def calculate_replenishment_metrics(customer_id: int, session: Session, comparis
     return {
         "last_order_id": order.id,
         "last_order_date": order.order_date,
-        "last_product_id": product.id,
-        "last_product_name": product.name,
-        "estimated_lifespan_days": product.estimated_lifespan_days,
+        "last_product_id": cached_info["id"],
+        "last_product_name": cached_info["name"],
+        "estimated_lifespan_days": cached_info["estimated_lifespan_days"],
         "days_since_last_purchase": days_since_last_purchase,
         "predicted_empty_date": predicted_empty_date,
         "days_until_empty": days_until_empty,
