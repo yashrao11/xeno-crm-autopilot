@@ -1,3 +1,4 @@
+import os
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -66,18 +67,20 @@ async def trigger_email_fallback(customer_id: int, campaign_id: int, original_co
     # Session closed, connection returned to QueuePool
     fallback_content = f"Hi {customer_name}, we couldn't reach you on WhatsApp. Here is your campaign fallback: {campaign_name}! Discount: {int(discount_rate * 100)}%."
     
+    callback_url = os.getenv("CRM_CALLBACK_URL", "http://localhost:8000/api/webhooks/receipt")
     payload = {
         "message_id": log_id,
         "recipient_phone_or_email": customer_email,
         "channel": "Email",
         "content": fallback_content,
-        "callback_url": "http://localhost:8000/api/webhooks/receipt"
+        "callback_url": callback_url
     }
     
     try:
         async with httpx.AsyncClient() as client:
             logger.info(f"Dispatching fallback message {log_id} to Channel Stub...")
-            response = await client.post("http://localhost:8001/channel/send", json=payload, timeout=5.0)
+            channel_service_url = os.getenv("CHANNEL_SERVICE_URL", "http://localhost:8001/channel/send")
+            response = await client.post(channel_service_url, json=payload, timeout=5.0)
             logger.info(f"Fallback dispatch result status: {response.status_code}")
     except Exception as e:
         logger.error(f"Failed to dispatch fallback message to channel stub: {e}")

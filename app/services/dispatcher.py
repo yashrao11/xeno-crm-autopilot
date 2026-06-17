@@ -1,3 +1,4 @@
+import os
 import logging
 import asyncio
 from datetime import datetime, timezone
@@ -106,12 +107,13 @@ async def dispatch_campaign_to_targets(
             
         recipient = customer.email if active_channel == "Email" else customer.phone
         
+        callback_url = os.getenv("CRM_CALLBACK_URL", "http://localhost:8000/api/webhooks/receipt")
         payload = {
             "message_id": log.id,
             "recipient_phone_or_email": recipient,
             "channel": active_channel,
             "content": content,
-            "callback_url": "http://localhost:8000/api/webhooks/receipt"
+            "callback_url": callback_url
         }
         payloads.append(payload)
         
@@ -133,7 +135,8 @@ async def dispatch_campaign_to_targets(
         async def send_message(payload):
             try:
                 logger.info(f"Dispatching message {payload['message_id']} to Channel Service ({active_channel})...")
-                response = await client.post("http://localhost:8001/channel/send", json=payload, timeout=10.0)
+                channel_service_url = os.getenv("CHANNEL_SERVICE_URL", "http://localhost:8001/channel/send")
+                response = await client.post(channel_service_url, json=payload, timeout=10.0)
                 if response.status_code != 202:
                     logger.error(f"Channel Service returned error code {response.status_code} for message {payload['message_id']}")
             except Exception as e:
