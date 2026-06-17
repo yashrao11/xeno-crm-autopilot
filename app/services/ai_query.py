@@ -18,109 +18,127 @@ def heuristic_extraction(query: str, session: Session) -> Dict[str, Any]:
     query_lower = query.lower()
     filters = {}
     
-    # 1. Relationship Tier
-    if "loyal" in query_lower:
-        filters["relationship_tier"] = "Loyal"
-    elif "early" in query_lower or "new" in query_lower:
-        filters["relationship_tier"] = "Early"
-        
-    # 2. Region / Cities (Legacy compatibility)
-    region_keywords = {
-        "north": "North", "delhi": "North", "noida": "North", "gurgaon": "North", "ncr": "North",
-        "south": "South", "bangalore": "South", "bengaluru": "South", "chennai": "South", "hyderabad": "South",
-        "east": "East", "kolkata": "East", "calcutta": "East",
-        "west": "West", "mumbai": "West", "pune": "West", "goa": "West",
-        "central": "Central", "indore": "Central", "bhopal": "Central"
-    }
-    for key, value in region_keywords.items():
-        if key in query_lower:
-            filters["region"] = value
-            break
-            
-    # 3. Shopping Method (Legacy compatibility)
-    if "store" in query_lower:
-        filters["favoured_shopping_method"] = "Store"
-    elif "website" in query_lower or "web" in query_lower:
-        filters["favoured_shopping_method"] = "Website"
-    elif "app" in query_lower:
-        filters["favoured_shopping_method"] = "App"
-        
-    # 4. Replenishment Status (Legacy compatibility)
-    if "overdue" in query_lower:
-        filters["replenishment_status"] = "Overdue"
-    elif "due soon" in query_lower or "soon" in query_lower:
-        filters["replenishment_status"] = "Due Soon"
-    elif "healthy" in query_lower or "safe" in query_lower:
-        filters["replenishment_status"] = "Healthy"
-        
-    # 5. Preferred Channel / Log Channel
-    if "whatsapp" in query_lower or "wa" in query_lower:
-        filters["channel"] = "WhatsApp"
-        filters["preferred_channel"] = "WhatsApp"
-    elif "email" in query_lower or "mail" in query_lower:
-        filters["channel"] = "Email"
-        filters["preferred_channel"] = "Email"
-    elif "sms" in query_lower or "text" in query_lower:
-        filters["channel"] = "SMS"
-        filters["preferred_channel"] = "SMS"
-    elif "instagram" in query_lower or "ig" in query_lower:
-        filters["channel"] = "Instagram"
-        filters["preferred_channel"] = "Instagram"
-    elif "facebook" in query_lower or "fb" in query_lower:
-        filters["channel"] = "Facebook"
-        filters["preferred_channel"] = "Facebook"
-        
-    # 6. Acquisition Source (Legacy compatibility)
-    acq_keywords = {
-        "facebook": "Facebook Ads", "google": "Google Search", "insta": "Instagram Ads",
-        "tiktok": "TikTok", "youtube": "YouTube", "referral": "Referral", "organic": "Organic"
-    }
-    for key, value in acq_keywords.items():
-        if key in query_lower:
-            filters["acquisition_source"] = value
-            break
-
-    # 7. Dynamic Product Name Matching & Product ID Matching
+    # 1. Dynamic Product Name Matching & Product ID Matching (Run first to prevent keyword collisions)
     try:
         products = session.exec(select(Product)).all()
-        for p in products:
-            if p.name.lower() in query_lower:
+        # Sort products by length descending so longer matching names get matched first
+        products_sorted = sorted(products, key=lambda x: len(x.name), reverse=True)
+        for p in products_sorted:
+            p_name_lower = p.name.lower()
+            if p_name_lower in query_lower:
                 filters["product_name"] = p.name
                 filters["product_id"] = p.id
+                # Strip product name from query to avoid matching its keywords (e.g. "organic") later
+                query_lower = query_lower.replace(p_name_lower, "")
                 break
     except Exception as e:
         logger.error(f"Failed to query products for heuristic extraction: {e}")
 
-    # 8. Dynamic Campaign Matching & Campaign ID Matching
+    # 2. Dynamic Campaign Matching & Campaign ID Matching (Run first to prevent keyword collisions)
     try:
         campaigns = session.exec(select(Campaign)).all()
-        for c in campaigns:
-            if c.name.lower() in query_lower:
+        campaigns_sorted = sorted(campaigns, key=lambda x: len(x.name), reverse=True)
+        for c in campaigns_sorted:
+            c_name_lower = c.name.lower()
+            if c_name_lower in query_lower:
                 filters["campaign_id"] = c.id
+                query_lower = query_lower.replace(c_name_lower, "")
                 break
-        camp_match = re.search(r'campaign\s*(\d+)', query_lower)
+        camp_match = re.search(r'\bcampaign\s*(\d+)\b', query_lower)
         if camp_match:
             filters["campaign_id"] = int(camp_match.group(1))
+            query_lower = re.sub(r'\bcampaign\s*\d+\b', "", query_lower)
     except Exception as e:
         logger.error(f"Failed to query campaigns for heuristic extraction: {e}")
+        
+    # Helper function to match whole words/phrases
+    def has_word(word_pattern: str) -> bool:
+        return bool(re.search(r'\b(?:' + word_pattern + r')\b', query_lower))
+
+    # 3. Relationship Tier
+    if has_word("loyal"):
+        filters["relationship_tier"] = "Loyal"
+    elif has_word("early|new"):
+        filters["relationship_tier"] = "Early"
+        
+    # 4. Region / Cities (Legacy compatibility)
+    region_keywords = {
+        "north|delhi|noida|gurgaon|ncr": "North",
+        "south|bangalore|bengaluru|chennai|hyderabad": "South",
+        "east|kolkata|calcutta": "East",
+        "west|mumbai|pune|goa": "West",
+        "central|indore|bhopal": "Central"
+    }
+    for pattern, value in region_keywords.items():
+        if has_word(pattern):
+            filters["region"] = value
+            break
+            
+    # 5. Shopping Method (Legacy compatibility)
+    if has_word("store"):
+        filters["favoured_shopping_method"] = "Store"
+    elif has_word("website|web"):
+        filters["favoured_shopping_method"] = "Website"
+    elif has_word("app"):
+        filters["favoured_shopping_method"] = "App"
+        
+    # 6. Replenishment Status (Legacy compatibility)
+    if has_word("overdue"):
+        filters["replenishment_status"] = "Overdue"
+    elif has_word("due soon|soon"):
+        filters["replenishment_status"] = "Due Soon"
+    elif has_word("healthy|safe"):
+        filters["replenishment_status"] = "Healthy"
+        
+    # 7. Preferred Channel / Log Channel
+    if has_word("whatsapp|wa"):
+        filters["channel"] = "WhatsApp"
+        filters["preferred_channel"] = "WhatsApp"
+    elif has_word("email|mail"):
+        filters["channel"] = "Email"
+        filters["preferred_channel"] = "Email"
+    elif has_word("sms|text"):
+        filters["channel"] = "SMS"
+        filters["preferred_channel"] = "SMS"
+    elif has_word("instagram|ig"):
+        filters["channel"] = "Instagram"
+        filters["preferred_channel"] = "Instagram"
+    elif has_word("facebook|fb"):
+        filters["channel"] = "Facebook"
+        filters["preferred_channel"] = "Facebook"
+        
+    # 8. Acquisition Source (Legacy compatibility)
+    acq_keywords = {
+        "facebook": "Facebook Ads",
+        "google": "Google Search",
+        "insta": "Instagram Ads",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "referral": "Referral",
+        "organic": "Organic"
+    }
+    for key, value in acq_keywords.items():
+        if has_word(key):
+            filters["acquisition_source"] = value
+            break
 
     # 9. Timeline Overdue Gaps (heuristics legacy compatibility)
-    match = re.search(r'(\d+)\+?\s*day', query_lower)
+    match = re.search(r'\b(\d+)\+?\s*day', query_lower)
     if match:
         filters["overdue_days"] = int(match.group(1))
 
     # 10. Discount Match
-    if "discount" in query_lower or "off" in query_lower or "percent" in query_lower or "%" in query_lower or "coupon" in query_lower:
+    if has_word("discount|off|percent|%|coupon"):
         filters["has_discount"] = True
 
     # 11. Status Match
-    if "replied" in query_lower or "reply" in query_lower or "replies" in query_lower:
+    if has_word("replied|reply|replies"):
         filters["status"] = "replied"
-    elif "clicked" in query_lower or "click" in query_lower:
+    elif has_word("clicked|click"):
         filters["status"] = "clicked"
-    elif "read" in query_lower:
+    elif has_word("read"):
         filters["status"] = "read"
-    elif "delivered" in query_lower:
+    elif has_word("delivered"):
         filters["status"] = "delivered"
 
     logger.info(f"Heuristic query parsing output: {filters}")
