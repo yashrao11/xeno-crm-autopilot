@@ -73,7 +73,7 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
         # Transition 2: read (95% probability for Email/WhatsApp/RCS/SMS, 0% for Others)
         if req.channel in ["Email", "WhatsApp", "Instagram", "Facebook", "RCS", "SMS"]:
             await asyncio.sleep(5.0)
-            has_read = random.random() < 0.95
+            has_read = random.random() < 0.75
             if has_read:
                 await post_webhook(client, req.callback_url, {
                     "message_id": req.message_id,
@@ -82,7 +82,7 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
                 
                 # Transition 3: clicked (85% probability)
                 await asyncio.sleep(5.0)
-                has_clicked = random.random() < 0.85
+                has_clicked = random.random() < 0.55
                 if has_clicked:
                     await post_webhook(client, req.callback_url, {
                         "message_id": req.message_id,
@@ -91,7 +91,7 @@ async def simulate_message_lifecycle(req: SendMessageRequest):
                     
                     # Transition 4: replied (60% probability)
                     await asyncio.sleep(5.0)
-                    has_replied = random.random() < 0.60
+                    has_replied = random.random() < 0.30
                     if has_replied:
                         # Select random reply category
                         reply_cat = random.choice(["positive", "neutral", "negative"])
